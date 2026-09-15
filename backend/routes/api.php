@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\NoteController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +42,13 @@ Route::prefix('auth')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
     });
+});
+
+/**
+ * User-Scoped Data Resources (Protected by Sanctum Token)
+ */
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('notes', NoteController::class);
 });
 
 // Legacy /user endpoint for standard Sanctum checks
