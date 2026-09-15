@@ -1,0 +1,265 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Shield, 
+  Server, 
+  Database, 
+  Cpu, 
+  CheckCircle2, 
+  AlertCircle, 
+  RefreshCw, 
+  Lock, 
+  Bell, 
+  Calendar, 
+  FileText, 
+  KeyRound,
+  ArrowRight
+} from 'lucide-react';
+import { checkBackendHealth } from './services/api';
+import type { HealthResponse } from './services/api';
+import './App.css';
+
+export const App: React.FC = () => {
+  /**
+   * React State Concepts:
+   * - `health`: Holds the parsed response payload from GET /api/health.
+   * - `loading`: Tracks in-flight network requests to disable buttons and show spinners.
+   * - `error`: Captures network or HTTP error messages for resilient UX.
+   * - `latency`: Measures round-trip time (RTT) in milliseconds.
+   */
+  const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [latency, setLatency] = useState<number | null>(null);
+
+  const fetchStatus = async () => {
+    setLoading(true);
+    setError(null);
+    const start = performance.now();
+
+    try {
+      const data = await checkBackendHealth();
+      const end = performance.now();
+      setHealth(data);
+      setLatency(Math.round(end - start));
+    } catch (err: any) {
+      setError(err?.message || 'Failed to connect to RemiVault backend API.');
+      setHealth(null);
+      setLatency(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * React Lifecycle Concept - `useEffect`:
+   * - Runs once after the component is mounted into the DOM (due to the empty dependency array `[]`).
+   * - Replaces older class-based `componentDidMount`.
+   * - Fetches the initial system telemetry without blocking the initial UI render.
+   */
+  useEffect(() => {
+    fetchStatus();
+  }, []);
+
+  return (
+    <div className="app-container">
+      {/* Top Navigation */}
+      <nav className="navbar">
+        <div className="brand">
+          <div className="brand-icon">
+            <Shield size={24} />
+          </div>
+          <span className="brand-name">RemiVault</span>
+          <span className="brand-version">v0.1.0-dev</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <span className={`badge ${health?.status === 'ok' ? 'badge-success' : 'badge-danger'}`}>
+            <span className={`pulse-dot ${health?.status === 'ok' ? 'online' : 'offline'}`}></span>
+            {health?.status === 'ok' ? 'System Online' : 'System Offline'}
+          </span>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <header className="hero">
+        <div className="hero-pill">
+          <Lock size={14} />
+          Stage 1: Foundation & Architecture Active
+        </div>
+        <h1 className="hero-title">
+          Secure Personal Productivity &amp; <span>Vault Management</span>
+        </h1>
+        <p className="hero-subtitle">
+          RemiVault isolates and safeguards your personal reminders, critical dates, notes, and sensitive credentials using rigorous authorization and modern cryptography.
+        </p>
+      </header>
+
+      {/* System Health & Architecture Telemetry */}
+      <section className="status-grid">
+        {/* Connection Status Card */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="card-title">
+              <Server size={20} color="#818cf8" />
+              Live Infrastructure Telemetry
+            </h2>
+            <button 
+              className="btn btn-secondary" 
+              onClick={fetchStatus} 
+              disabled={loading}
+              style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+            >
+              <RefreshCw size={14} className={loading ? 'spin' : ''} />
+              {loading ? 'Pinging...' : 'Ping API'}
+            </button>
+          </div>
+
+          <div className="status-items">
+            <div className="status-row">
+              <span className="status-label">
+                <Cpu size={16} />
+                Frontend SPA
+              </span>
+              <span className="status-value badge badge-primary">
+                React 19 + TypeScript (Vite)
+              </span>
+            </div>
+
+            <div className="status-row">
+              <span className="status-label">
+                <Server size={16} />
+                Backend REST API
+              </span>
+              <span className="status-value">
+                {health ? `${health.application} (${health.environment})` : 'Connecting...'}
+              </span>
+            </div>
+
+            <div className="status-row">
+              <span className="status-label">
+                <Database size={16} />
+                Database (MySQL/MariaDB)
+              </span>
+              <span className="status-value">
+                {health?.database === 'connected' ? (
+                  <span className="badge badge-success">
+                    <CheckCircle2 size={13} /> Connected (remivault_dev)
+                  </span>
+                ) : (
+                  <span className="badge badge-danger">
+                    <AlertCircle size={13} /> {health?.database || 'Disconnected'}
+                  </span>
+                )}
+              </span>
+            </div>
+
+            <div className="status-row">
+              <span className="status-label">
+                <RefreshCw size={16} />
+                API Round-Trip Latency
+              </span>
+              <span className="status-value" style={{ color: '#38bdf8' }}>
+                {latency !== null ? `${latency} ms` : '—'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Live HTTP Payload Viewer */}
+        <div className="card">
+          <div className="card-header">
+            <h2 className="card-title">
+              <CheckCircle2 size={20} color="#34d399" />
+              HTTP Exchange (GET /api/health)
+            </h2>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>JSON Payload</span>
+          </div>
+
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '0.85rem' }}>
+            Direct response received from the Laravel router over HTTP with full CORS negotiation:
+          </p>
+
+          <pre className="payload-viewer">
+            {error ? (
+              <span style={{ color: '#fb7185' }}>Error: {error}</span>
+            ) : health ? (
+              JSON.stringify(health, null, 2)
+            ) : (
+              'Waiting for response...'
+            )}
+          </pre>
+        </div>
+      </section>
+
+      {/* Roadmap Modules Grid */}
+      <section className="roadmap-section">
+        <div className="section-header">
+          <h2 className="section-title">Application Blueprint &amp; Roadmap</h2>
+          <p className="section-desc">Each module is isolated by user ownership and protected by strict authorization policies.</p>
+        </div>
+
+        <div className="modules-grid">
+          <div className="card module-card active-stage">
+            <div className="module-icon-wrap" style={{ color: '#818cf8' }}>
+              <Server size={22} />
+            </div>
+            <h3 className="module-title">Stage 1: Foundation</h3>
+            <p className="module-desc">Decoupled React SPA, Laravel REST API, MySQL database, Git hygiene, and CORS.</p>
+            <div className="module-status">
+              <CheckCircle2 size={14} /> Completed &amp; Verified
+            </div>
+          </div>
+
+          <div className="card module-card">
+            <div className="module-icon-wrap" style={{ color: '#38bdf8' }}>
+              <Lock size={22} />
+            </div>
+            <h3 className="module-title">Stage 2: Authentication</h3>
+            <p className="module-desc">User Registration, Login, Logout, Bcrypt/Argon2id password hashing, Sanctum Bearer tokens.</p>
+            <div className="module-status" style={{ color: '#38bdf8' }}>
+              <ArrowRight size={14} /> Up Next
+            </div>
+          </div>
+
+          <div className="card module-card">
+            <div className="module-icon-wrap" style={{ color: '#34d399' }}>
+              <FileText size={22} />
+            </div>
+            <h3 className="module-title">Stages 3 &amp; 4: Notes</h3>
+            <p className="module-desc">Encrypted &amp; plaintext personal notes, CRUD operations, User ownership policies.</p>
+            <div className="module-status">Planned</div>
+          </div>
+
+          <div className="card module-card">
+            <div className="module-icon-wrap" style={{ color: '#f59e0b' }}>
+              <Bell size={22} />
+            </div>
+            <h3 className="module-title">Stage 5: Reminders</h3>
+            <p className="module-desc">Time-sensitive reminders, status tracking, UTC normalization, background scheduling.</p>
+            <div className="module-status">Planned</div>
+          </div>
+
+          <div className="card module-card">
+            <div className="module-icon-wrap" style={{ color: '#f43f5e' }}>
+              <Calendar size={22} />
+            </div>
+            <h3 className="module-title">Stage 6: Important Dates</h3>
+            <p className="module-desc">Passports, anniversaries, warranties, recurring cycles, countdown calculations.</p>
+            <div className="module-status">Planned</div>
+          </div>
+
+          <div className="card module-card">
+            <div className="module-icon-wrap" style={{ color: '#a855f7' }}>
+              <KeyRound size={22} />
+            </div>
+            <h3 className="module-title">Stage 7: Password Vault</h3>
+            <p className="module-desc">AES-256-GCM symmetric encryption, zero-plaintext storage, secure key derivation.</p>
+            <div className="module-status">Planned</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default App;
