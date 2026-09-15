@@ -12,24 +12,28 @@ import {
   Calendar, 
   FileText, 
   KeyRound,
-  ArrowRight
+  ArrowRight,
+  LogOut,
+  UserCheck,
+  Fingerprint
 } from 'lucide-react';
-import { checkBackendHealth } from './services/api';
+import { checkBackendHealth, getStoredToken } from './services/api';
 import type { HealthResponse } from './services/api';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthModal } from './components/auth/AuthModal';
 import './App.css';
 
-export const App: React.FC = () => {
-  /**
-   * React State Concepts:
-   * - `health`: Holds the parsed response payload from GET /api/health.
-   * - `loading`: Tracks in-flight network requests to disable buttons and show spinners.
-   * - `error`: Captures network or HTTP error messages for resilient UX.
-   * - `latency`: Measures round-trip time (RTT) in milliseconds.
-   */
+const RemiVaultDashboard: React.FC = () => {
+  const { user, logout } = useAuth();
+  
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [latency, setLatency] = useState<number | null>(null);
+
+  // Auth Modal State
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
 
   const fetchStatus = async () => {
     setLoading(true);
@@ -41,8 +45,9 @@ export const App: React.FC = () => {
       const end = performance.now();
       setHealth(data);
       setLatency(Math.round(end - start));
-    } catch (err: any) {
-      setError(err?.message || 'Failed to connect to RemiVault backend API.');
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setError(e?.message || 'Failed to connect to RemiVault backend API.');
       setHealth(null);
       setLatency(null);
     } finally {
@@ -50,15 +55,19 @@ export const App: React.FC = () => {
     }
   };
 
-  /**
-   * React Lifecycle Concept - `useEffect`:
-   * - Runs once after the component is mounted into the DOM (due to the empty dependency array `[]`).
-   * - Replaces older class-based `componentDidMount`.
-   * - Fetches the initial system telemetry without blocking the initial UI render.
-   */
   useEffect(() => {
     fetchStatus();
   }, []);
+
+  const openAuth = (mode: 'login' | 'register') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  const storedToken = getStoredToken();
+  const maskedToken = storedToken 
+    ? `${storedToken.substring(0, 4)}...${storedToken.substring(storedToken.length - 4)}`
+    : null;
 
   return (
     <div className="app-container">
@@ -69,7 +78,7 @@ export const App: React.FC = () => {
             <Shield size={24} />
           </div>
           <span className="brand-name">RemiVault</span>
-          <span className="brand-version">v0.1.0-dev</span>
+          <span className="brand-version">v0.2.0-dev</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -77,14 +86,83 @@ export const App: React.FC = () => {
             <span className={`pulse-dot ${health?.status === 'ok' ? 'online' : 'offline'}`}></span>
             {health?.status === 'ok' ? 'System Online' : 'System Offline'}
           </span>
+
+          {/* User Auth Buttons or Profile Menu */}
+          {user ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div className="badge badge-primary" style={{ padding: '0.4rem 0.8rem', gap: '0.5rem' }}>
+                <UserCheck size={14} />
+                <span>{user.name}</span>
+              </div>
+              <button 
+                className="btn btn-secondary" 
+                onClick={logout}
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                title="Sign Out"
+              >
+                <LogOut size={14} />
+                <span>Logout</span>
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => openAuth('login')}
+                style={{ padding: '0.4rem 0.9rem', fontSize: '0.85rem' }}
+              >
+                Sign In
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => openAuth('register')}
+                style={{ padding: '0.4rem 0.9rem', fontSize: '0.85rem' }}
+              >
+                Create Account
+              </button>
+            </div>
+          )}
         </div>
       </nav>
+
+      {/* Authenticated User Session Banner */}
+      {user && (
+        <section className="user-profile-card">
+          <div className="user-info-group">
+            <div className="user-avatar">
+              {user.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="user-meta">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <h3 className="user-name">{user.name}</h3>
+                <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>
+                  Authenticated (User #{user.id})
+                </span>
+              </div>
+              <span className="user-email-tag">{user.email}</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', textAlign: 'right' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end' }}>
+              <Fingerprint size={16} color="#818cf8" />
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Sanctum Bearer Token:</span>
+              <code style={{ fontSize: '0.82rem', color: '#38bdf8', background: 'rgba(0,0,0,0.3)', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
+                {maskedToken}
+              </code>
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              All subsequent requests to Notes, Reminders &amp; Vault are strictly authorized to User #{user.id}.
+            </span>
+          </div>
+        </section>
+      )}
 
       {/* Hero Section */}
       <header className="hero">
         <div className="hero-pill">
           <Lock size={14} />
-          Stage 1: Foundation & Architecture Active
+          Stage 2: Authentication &amp; Authorization Active
         </div>
         <h1 className="hero-title">
           Secure Personal Productivity &amp; <span>Vault Management</span>
@@ -170,17 +248,25 @@ export const App: React.FC = () => {
           <div className="card-header">
             <h2 className="card-title">
               <CheckCircle2 size={20} color="#34d399" />
-              HTTP Exchange (GET /api/health)
+              Authentication &amp; Health Telemetry
             </h2>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>JSON Payload</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Live State</span>
           </div>
 
           <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '0.85rem' }}>
-            Direct response received from the Laravel router over HTTP with full CORS negotiation:
+            {user ? `Active session for ${user.email} verified with Laravel Sanctum:` : 'Infrastructure health payload:'}
           </p>
 
           <pre className="payload-viewer">
-            {error ? (
+            {user ? (
+              JSON.stringify({
+                auth_status: 'authenticated',
+                user: user,
+                token_preview: maskedToken,
+                session_type: 'Sanctum Bearer Token',
+                database_collation: 'utf8mb4_unicode_ci',
+              }, null, 2)
+            ) : error ? (
               <span style={{ color: '#fb7185' }}>Error: {error}</span>
             ) : health ? (
               JSON.stringify(health, null, 2)
@@ -199,25 +285,25 @@ export const App: React.FC = () => {
         </div>
 
         <div className="modules-grid">
-          <div className="card module-card active-stage">
+          <div className="card module-card">
             <div className="module-icon-wrap" style={{ color: '#818cf8' }}>
               <Server size={22} />
             </div>
             <h3 className="module-title">Stage 1: Foundation</h3>
             <p className="module-desc">Decoupled React SPA, Laravel REST API, MySQL database, Git hygiene, and CORS.</p>
             <div className="module-status">
-              <CheckCircle2 size={14} /> Completed &amp; Verified
+              <CheckCircle2 size={14} /> Completed
             </div>
           </div>
 
-          <div className="card module-card">
+          <div className="card module-card active-stage">
             <div className="module-icon-wrap" style={{ color: '#38bdf8' }}>
               <Lock size={22} />
             </div>
             <h3 className="module-title">Stage 2: Authentication</h3>
-            <p className="module-desc">User Registration, Login, Logout, Bcrypt/Argon2id password hashing, Sanctum Bearer tokens.</p>
-            <div className="module-status" style={{ color: '#38bdf8' }}>
-              <ArrowRight size={14} /> Up Next
+            <p className="module-desc">User Registration, Login, Logout, Bcrypt password hashing, Sanctum Bearer tokens.</p>
+            <div className="module-status">
+              <CheckCircle2 size={14} /> Completed &amp; Verified
             </div>
           </div>
 
@@ -227,7 +313,9 @@ export const App: React.FC = () => {
             </div>
             <h3 className="module-title">Stages 3 &amp; 4: Notes</h3>
             <p className="module-desc">Encrypted &amp; plaintext personal notes, CRUD operations, User ownership policies.</p>
-            <div className="module-status">Planned</div>
+            <div className="module-status" style={{ color: '#34d399' }}>
+              <ArrowRight size={14} /> Up Next
+            </div>
           </div>
 
           <div className="card module-card">
@@ -258,7 +346,22 @@ export const App: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialMode={authModalMode}
+      />
     </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <RemiVaultDashboard />
+    </AuthProvider>
   );
 };
 
