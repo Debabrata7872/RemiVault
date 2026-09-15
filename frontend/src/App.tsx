@@ -21,6 +21,7 @@ import { checkBackendHealth, getStoredToken } from './services/api';
 import type { HealthResponse } from './services/api';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthModal } from './components/auth/AuthModal';
+import { NotesSection } from './components/notes/NotesSection';
 import './App.css';
 
 const RemiVaultDashboard: React.FC = () => {
@@ -158,11 +159,14 @@ const RemiVaultDashboard: React.FC = () => {
         </section>
       )}
 
+      {/* Main Feature: Personal Notes (Available for Authenticated Users) */}
+      {user && <NotesSection />}
+
       {/* Hero Section */}
       <header className="hero">
         <div className="hero-pill">
           <Lock size={14} />
-          Stage 2: Authentication &amp; Authorization Active
+          Stages 3 &amp; 4: User Data Architecture &amp; Notes Active
         </div>
         <h1 className="hero-title">
           Secure Personal Productivity &amp; <span>Vault Management</span>
@@ -307,14 +311,14 @@ const RemiVaultDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="card module-card">
+          <div className="card module-card active-stage">
             <div className="module-icon-wrap" style={{ color: '#34d399' }}>
               <FileText size={22} />
             </div>
             <h3 className="module-title">Stages 3 &amp; 4: Notes</h3>
-            <p className="module-desc">Encrypted &amp; plaintext personal notes, CRUD operations, User ownership policies.</p>
-            <div className="module-status" style={{ color: '#34d399' }}>
-              <ArrowRight size={14} /> Up Next
+            <p className="module-desc">Personal notes CRUD, Eloquent relationship scoping, and IDOR/BOLA authorization.</p>
+            <div className="module-status">
+              <CheckCircle2 size={14} /> Completed &amp; Verified
             </div>
           </div>
 
@@ -324,7 +328,9 @@ const RemiVaultDashboard: React.FC = () => {
             </div>
             <h3 className="module-title">Stage 5: Reminders</h3>
             <p className="module-desc">Time-sensitive reminders, status tracking, UTC normalization, background scheduling.</p>
-            <div className="module-status">Planned</div>
+            <div className="module-status" style={{ color: '#f59e0b' }}>
+              <ArrowRight size={14} /> Up Next
+            </div>
           </div>
 
           <div className="card module-card">
