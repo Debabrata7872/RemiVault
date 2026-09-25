@@ -57,38 +57,6 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
           <p className="overview-subtitle">
             Your personal reminders, critical dates, passwords, and private notes are safely isolated and encrypted.
           </p>
-
-          {/* Quick Action Buttons */}
-          <div className="overview-quick-actions">
-            <button 
-              className="btn btn-primary overview-action-btn"
-              onClick={() => onNavigate('vault')}
-            >
-              <KeyRound size={16} />
-              <span>Password Vault</span>
-            </button>
-            <button 
-              className="btn btn-secondary overview-action-btn"
-              onClick={() => onNavigate('reminders')}
-            >
-              <Bell size={16} />
-              <span>Reminders</span>
-            </button>
-            <button 
-              className="btn btn-secondary overview-action-btn"
-              onClick={() => onNavigate('dates')}
-            >
-              <Calendar size={16} />
-              <span>Important Dates</span>
-            </button>
-            <button 
-              className="btn btn-secondary overview-action-btn"
-              onClick={() => onNavigate('notes')}
-            >
-              <FileText size={16} />
-              <span>Personal Notes</span>
-            </button>
-          </div>
         </div>
       </section>
 
