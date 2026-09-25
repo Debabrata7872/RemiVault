@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\NoteController;
+use App\Http\Controllers\Api\ReminderController;
+use App\Http\Controllers\Api\ImportantDateController;
+use App\Http\Controllers\Api\VaultEntryController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -49,6 +52,20 @@ Route::prefix('auth')->group(function () {
  */
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('notes', NoteController::class);
+
+    // Stage 5: Reminders Resource and Workflow Endpoints
+    Route::apiResource('reminders', ReminderController::class);
+    Route::patch('/reminders/{reminder}/toggle-complete', [ReminderController::class, 'toggleComplete']);
+    Route::post('/reminders/{reminder}/snooze', [ReminderController::class, 'snooze']);
+
+    // Stage 6: Important Dates Resource and Workflow Endpoints
+    Route::apiResource('important-dates', ImportantDateController::class);
+    Route::patch('/important-dates/{importantDate}/toggle-pin', [ImportantDateController::class, 'togglePin']);
+
+    // Stage 7: Password Vault Resource and Workflow Endpoints
+    Route::apiResource('vault-entries', VaultEntryController::class);
+    Route::patch('/vault-entries/{vaultEntry}/toggle-favorite', [VaultEntryController::class, 'toggleFavorite']);
+    Route::post('/vault-entries/{vaultEntry}/record-access', [VaultEntryController::class, 'recordAccess']);
 });
 
 // Legacy /user endpoint for standard Sanctum checks

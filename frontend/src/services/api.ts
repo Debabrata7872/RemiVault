@@ -126,6 +126,89 @@ export async function apiPost<T, B = unknown>(endpoint: string, body?: B): Promi
 }
 
 /**
+ * Perform a typed HTTP PUT request
+ */
+export async function apiPut<T, B = unknown>(endpoint: string, body?: B): Promise<T> {
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE_URL}${cleanEndpoint}`;
+
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    let errorData: ApiError;
+    try {
+      errorData = await response.json();
+    } catch {
+      errorData = { message: `HTTP error ${response.status}: ${response.statusText}` };
+    }
+    errorData.status = response.status;
+    throw errorData;
+  }
+
+  return response.json();
+}
+
+/**
+ * Perform a typed HTTP PATCH request
+ */
+export async function apiPatch<T, B = unknown>(endpoint: string, body?: B): Promise<T> {
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE_URL}${cleanEndpoint}`;
+
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    let errorData: ApiError;
+    try {
+      errorData = await response.json();
+    } catch {
+      errorData = { message: `HTTP error ${response.status}: ${response.statusText}` };
+    }
+    errorData.status = response.status;
+    throw errorData;
+  }
+
+  return response.json();
+}
+
+/**
+ * Perform a typed HTTP DELETE request
+ */
+export async function apiDelete<T>(endpoint: string): Promise<T> {
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE_URL}${cleanEndpoint}`;
+
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: getHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    let errorData: ApiError;
+    try {
+      errorData = await response.json();
+    } catch {
+      errorData = { message: `HTTP error ${response.status}: ${response.statusText}` };
+    }
+    errorData.status = response.status;
+    throw errorData;
+  }
+
+  return response.json();
+}
+
+/**
  * API Endpoints
  */
 export async function checkBackendHealth(): Promise<HealthResponse> {

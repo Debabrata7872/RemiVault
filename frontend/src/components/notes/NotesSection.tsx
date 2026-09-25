@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, 
   Search, 
@@ -43,6 +43,37 @@ export const NotesSection: React.FC = () => {
   const [formPinned, setFormPinned] = useState<boolean>(false);
   const [formColor, setFormColor] = useState<NoteColor>('default');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  // Smooth animation tracking states
+  const [newNoteId, setNewNoteId] = useState<number | null>(null);
+  const [updatedNoteId, setUpdatedNoteId] = useState<number | null>(null);
+  const [deletingNoteIds, setDeletingNoteIds] = useState<Set<number>>(new Set());
+  const [pinningNoteId, setPinningNoteId] = useState<number | null>(null);
+
+  // Responsive Masonry Column Management
+  const containerRef = useRef<HTMLElement>(null);
+  const [columnCount, setColumnCount] = useState<number>(3);
+
+  useEffect(() => {
+    const updateCols = () => {
+      if (!containerRef.current) return;
+      const width = containerRef.current.offsetWidth;
+      if (width < 640) {
+        setColumnCount(1);
+      } else if (width < 1020) {
+        setColumnCount(2);
+      } else {
+        setColumnCount(3);
+      }
+    };
+
+    updateCols();
+    const observer = new ResizeObserver(updateCols);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+    return () => observer.disconnect();
+  }, []);
 
   const loadNotes = async () => {
     setLoading(true);
@@ -99,6 +130,8 @@ export const NotesSection: React.FC = () => {
           color: formColor,
         });
         setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+        setUpdatedNoteId(updated.id);
+        setTimeout(() => setUpdatedNoteId(null), 2000);
       } else {
         const created = await createNoteApi({
           title: formTitle,
@@ -106,7 +139,9 @@ export const NotesSection: React.FC = () => {
           is_pinned: formPinned,
           color: formColor,
         });
+        setNewNoteId(created.id);
         setNotes((prev) => [created, ...prev]);
+        setTimeout(() => setNewNoteId(null), 2500);
       }
       closeModal();
     } catch (err: unknown) {
@@ -119,14 +154,17 @@ export const NotesSection: React.FC = () => {
 
   const handleTogglePin = async (note: Note) => {
     try {
+      setPinningNoteId(note.id);
       const updated = await updateNoteApi(note.id, { is_pinned: !note.is_pinned });
       setNotes((prev) =>
         prev
           .map((n) => (n.id === updated.id ? updated : n))
           .sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0))
       );
+      setTimeout(() => setPinningNoteId(null), 1000);
     } catch {
       alert('Failed to update pin state');
+      setPinningNoteId(null);
     }
   };
 
@@ -134,8 +172,21 @@ export const NotesSection: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this note?')) return;
 
     try {
-      await deleteNoteApi(id);
-      setNotes((prev) => prev.filter((n) => n.id !== id));
+      setDeletingNoteIds((prev) => new Set(prev).add(id));
+      setTimeout(async () => {
+        try {
+          await deleteNoteApi(id);
+          setNotes((prev) => prev.filter((n) => n.id !== id));
+        } catch {
+          alert('Failed to delete note');
+        } finally {
+          setDeletingNoteIds((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        }
+      }, 280);
     } catch {
       alert('Failed to delete note');
     }
@@ -153,8 +204,36 @@ export const NotesSection: React.FC = () => {
     return COLOR_OPTIONS.find((c) => c.key === color) || COLOR_OPTIONS[0];
   };
 
+  const renderMasonry = (noteList: Note[]) => {
+    const effectiveCols = Math.min(columnCount, Math.max(1, noteList.length));
+    const columns: Note[][] = Array.from({ length: effectiveCols }, () => []);
+
+    noteList.forEach((note, index) => {
+      columns[index % effectiveCols].push(note);
+    });
+
+    return (
+      <div 
+        className="notes-masonry"
+        style={{
+          maxWidth: effectiveCols === 1 && columnCount > 1 
+            ? '420px' 
+            : effectiveCols === 2 && columnCount > 2 
+            ? '860px' 
+            : '100%',
+        }}
+      >
+        {columns.map((colNotes, colIdx) => (
+          <div key={colIdx} className="notes-masonry-column">
+            {colNotes.map((note) => renderNoteCard(note))}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <section className="notes-container">
+    <section ref={containerRef} className="notes-container">
       {/* Header & Controls */}
       <div className="notes-header">
         <div>
@@ -217,9 +296,7 @@ export const NotesSection: React.FC = () => {
                 <Pin size={14} color="#818cf8" />
                 <span>PINNED NOTES ({pinnedNotes.length})</span>
               </div>
-              <div className="notes-grid">
-                {pinnedNotes.map((note) => renderNoteCard(note))}
-              </div>
+              {renderMasonry(pinnedNotes)}
             </div>
           )}
 
@@ -231,9 +308,7 @@ export const NotesSection: React.FC = () => {
                   <span>ALL NOTES ({otherNotes.length})</span>
                 </div>
               )}
-              <div className="notes-grid">
-                {otherNotes.map((note) => renderNoteCard(note))}
-              </div>
+              {renderMasonry(otherNotes)}
             </div>
           )}
 
@@ -350,11 +425,15 @@ export const NotesSection: React.FC = () => {
 
   function renderNoteCard(note: Note) {
     const colorCfg = getColorConfig(note.color);
+    const isNew = newNoteId === note.id;
+    const isUpdated = updatedNoteId === note.id;
+    const isDeleting = deletingNoteIds.has(note.id);
+    const isPinning = pinningNoteId === note.id;
 
     return (
       <div 
         key={note.id} 
-        className="card note-card"
+        className={`card note-card ${isNew ? 'note-card-new' : ''} ${isUpdated ? 'note-card-updated' : ''} ${isDeleting ? 'note-card-deleting' : ''} ${isPinning ? 'note-card-pin-anim' : ''}`}
         style={{
           borderColor: colorCfg.border,
           background: colorCfg.bg,
@@ -364,9 +443,10 @@ export const NotesSection: React.FC = () => {
           <h3 className="note-card-title">{note.title}</h3>
           <div className="note-card-actions">
             <button 
-              className={`note-action-btn ${note.is_pinned ? 'pinned' : ''}`} 
+              className={`note-action-btn ${note.is_pinned ? 'pinned' : ''} ${isPinning ? 'pinning' : ''}`} 
               onClick={() => handleTogglePin(note)}
               title={note.is_pinned ? 'Unpin note' : 'Pin note to top'}
+              aria-label={note.is_pinned ? 'Unpin note' : 'Pin note to top'}
             >
               <Pin size={15} />
             </button>
@@ -374,6 +454,7 @@ export const NotesSection: React.FC = () => {
               className="note-action-btn" 
               onClick={() => openEditModal(note)}
               title="Edit note"
+              aria-label="Edit note"
             >
               <Edit3 size={15} />
             </button>
@@ -381,6 +462,7 @@ export const NotesSection: React.FC = () => {
               className="note-action-btn delete" 
               onClick={() => handleDelete(note.id)}
               title="Delete note"
+              aria-label="Delete note"
             >
               <Trash2 size={15} />
             </button>

@@ -54,4 +54,33 @@ class User extends Authenticatable
     {
         return $this->hasMany(Note::class);
     }
+
+    /**
+     * Get all reminders belonging to the user.
+     * Relational mapping: users.id -> reminders.user_id
+     */
+    public function reminders(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Reminder::class);
+    }
+
+    /**
+     * Get all important dates belonging to the user.
+     * Relational mapping: users.id -> important_dates.user_id
+     */
+    public function importantDates(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ImportantDate::class);
+    }
+
+    /**
+     * Get all vault entries belonging to the user.
+     * Relational mapping: users.id -> vault_entries.user_id
+     */
+    public function vaultEntries(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(VaultEntry::class);
+    }
 }
+
+
