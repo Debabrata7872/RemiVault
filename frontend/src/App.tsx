@@ -17,6 +17,8 @@ import {
 import { checkBackendHealth, getStoredToken } from './services/api';
 import type { HealthResponse } from './services/api';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ThemeSwitcher } from './components/theme/ThemeSwitcher';
 import { AuthModal } from './components/auth/AuthModal';
 import { NotesSection } from './components/notes/NotesSection';
 import { RemindersSection } from './components/reminders/RemindersSection';
@@ -147,6 +149,7 @@ const RemiVaultApp: React.FC = () => {
         </div>
 
         <div className="navbar-actions">
+          <ThemeSwitcher />
           {user ? (
             <div className="navbar-user-group">
               <div className="badge badge-primary user-nav-badge">
@@ -440,9 +443,11 @@ const RemiVaultApp: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <RemiVaultApp />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RemiVaultApp />
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

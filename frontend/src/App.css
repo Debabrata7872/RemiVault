@@ -4594,6 +4594,151 @@ input[type="datetime-local"] {
   }
 }
 
+/* =========================================================================
+   LIGHT THEME ENHANCEMENTS FOR REMIVAULT COMPONENTS
+   ========================================================================= */
+
+/* Brand & Typography */
+[data-theme="light"] .brand-name {
+  background: linear-gradient(135deg, #0f172a 35%, #4f46e5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-theme="light"] .brand-version {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .hero-title span {
+  background: linear-gradient(135deg, #4f46e5 20%, #059669 90%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-theme="light"] .hero-pill {
+  background: rgba(79, 70, 229, 0.08);
+  border-color: rgba(79, 70, 229, 0.2);
+  color: #4338ca;
+}
+
+/* Navbar */
+[data-theme="light"] .navbar {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.09);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .nav-status-badge {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #047857;
+}
+
+[data-theme="light"] .user-nav-badge {
+  background: rgba(79, 70, 229, 0.08);
+  border-color: rgba(79, 70, 229, 0.2);
+  color: #4338ca;
+}
+
+/* Workspace Tabs */
+[data-theme="light"] .workspace-tabs-container {
+  background: transparent;
+}
+
+[data-theme="light"] .workspace-nav-tabs {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .workspace-tab-item {
+  color: #64748b;
+}
+
+[data-theme="light"] .workspace-tab-item:hover {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .workspace-tab-item.active {
+  background: #ffffff;
+  color: #4338ca;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Modals & Overlays */
+[data-theme="light"] .modal-overlay {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(8px);
+}
+
+[data-theme="light"] .modal-container,
+[data-theme="light"] .modal-card {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+/* Inputs, Textareas, Selects */
+[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):focus,
+[data-theme="light"] textarea:focus,
+[data-theme="light"] select:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Feature & Stat Cards */
+[data-theme="light"] .overview-module-card,
+[data-theme="light"] .overview-stat-card,
+[data-theme="light"] .overview-welcome-banner,
+[data-theme="light"] .note-card,
+[data-theme="light"] .vault-card,
+[data-theme="light"] .reminder-item,
+[data-theme="light"] .date-card {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .overview-welcome-banner {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.06) 0%, rgba(6, 182, 212, 0.04) 100%);
+  border-color: rgba(79, 70, 229, 0.15);
+}
+
+[data-theme="light"] .overview-module-card:hover,
+[data-theme="light"] .note-card:hover,
+[data-theme="light"] .vault-card:hover,
+[data-theme="light"] .date-card:hover {
+  border-color: rgba(79, 70, 229, 0.3);
+  box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.08);
+}
+
+/* Security Banner in Dashboard */
+[data-theme="light"] .security-summary-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(6, 182, 212, 0.04) 100%);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="light"] .security-icon-badge {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+
 
 
 
