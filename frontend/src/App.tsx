@@ -12,14 +12,15 @@ import {
   Terminal,
   ArrowRight,
   Lock,
-  Sparkles
+  Sparkles,
+  Settings
 } from 'lucide-react';
 import { checkBackendHealth, getStoredToken } from './services/api';
 import type { HealthResponse } from './services/api';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { ThemeSwitcher } from './components/theme/ThemeSwitcher';
 import { AuthModal } from './components/auth/AuthModal';
+import { SettingsModal } from './components/settings/SettingsModal';
 import { NotesSection } from './components/notes/NotesSection';
 import { RemindersSection } from './components/reminders/RemindersSection';
 import { ImportantDatesSection } from './components/importantDates/ImportantDatesSection';
@@ -47,6 +48,9 @@ const RemiVaultApp: React.FC = () => {
   // Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+
+  // Settings Modal State (Accessible after sign-in)
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
   // Active Workspace Tab
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('overview');
@@ -149,13 +153,20 @@ const RemiVaultApp: React.FC = () => {
         </div>
 
         <div className="navbar-actions">
-          <ThemeSwitcher />
           {user ? (
             <div className="navbar-user-group">
               <div className="badge badge-primary user-nav-badge">
                 <UserCheck size={14} />
                 <span className="user-nav-name">{user.name}</span>
               </div>
+              <button 
+                className="btn btn-secondary nav-settings-btn" 
+                onClick={() => setIsSettingsOpen(true)}
+                title="Settings & Appearance"
+              >
+                <Settings size={14} />
+                <span>Settings</span>
+              </button>
               <button 
                 className="btn btn-secondary nav-logout-btn" 
                 onClick={logout}
@@ -425,6 +436,12 @@ const RemiVaultApp: React.FC = () => {
         initialMode={authModalMode}
       />
 
+      {/* Settings Modal (Theme preferences & account info) */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
+
       {/* Admin / System Diagnostics Modal (Kept safe for future Admin Panel) */}
       <AdminDiagnosticsModal
         isOpen={isAdminDiagOpen}
@@ -443,11 +460,11 @@ const RemiVaultApp: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <ThemeProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <RemiVaultApp />
-      </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 };
 
