@@ -40,6 +40,20 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])
         ->middleware('throttle:5,1');
 
+    // Email OTP Verification Endpoints
+    Route::post('/send-email-otp', [AuthController::class, 'sendEmailOtp'])
+        ->middleware('throttle:6,1');
+    Route::post('/check-email-otp', [AuthController::class, 'checkEmailOtp'])
+        ->middleware('throttle:10,1');
+    Route::post('/verify-email-otp-register', [AuthController::class, 'verifyEmailOtpRegister'])
+        ->middleware('throttle:10,1');
+    Route::post('/verify-email-otp-reset', [AuthController::class, 'verifyEmailOtpReset'])
+        ->middleware('throttle:10,1');
+
+    // Firebase Authentication (Google Sign-In & Phone OTP)
+    Route::post('/firebase-login', [AuthController::class, 'firebaseLogin'])
+        ->middleware('throttle:10,1');
+
     // Protected routes requiring a valid Bearer token via Laravel Sanctum
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);

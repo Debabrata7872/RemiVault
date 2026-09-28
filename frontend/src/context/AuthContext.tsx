@@ -6,7 +6,10 @@ import {
   loginApi, 
   registerApi, 
   getMeApi, 
-  logoutApi 
+  logoutApi,
+  verifyEmailOtpRegisterApi,
+  verifyEmailOtpResetApi,
+  firebaseLoginApi
 } from '../services/api';
 import type { User, ApiError } from '../services/api';
 
@@ -17,6 +20,9 @@ interface AuthContextType {
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, confirmation: string) => Promise<void>;
+  registerWithOtp: (name: string, email: string, password: string, confirmation: string, otp: string) => Promise<void>;
+  resetPasswordWithOtp: (email: string, password: string, confirmation: string, otp: string) => Promise<void>;
+  loginWithFirebase: (idToken: string, email?: string | null, name?: string | null, phone?: string | null) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -101,6 +107,79 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const registerWithOtp = async (
+    name: string,
+    email: string,
+    password: string,
+    confirmation: string,
+    otp: string
+  ): Promise<void> => {
+    setError(null);
+    try {
+      const response = await verifyEmailOtpRegisterApi({
+        name,
+        email,
+        password,
+        password_confirmation: confirmation,
+        otp,
+      });
+      setStoredToken(response.token);
+      setToken(response.token);
+      setUser(response.user);
+    } catch (err: unknown) {
+      const apiErr = err as ApiError;
+      const firstField = apiErr.errors ? Object.keys(apiErr.errors)[0] : null;
+      const msg = firstField ? apiErr.errors![firstField][0] : apiErr.message || 'OTP Verification failed';
+      setError(msg);
+      throw apiErr;
+    }
+  };
+
+  const resetPasswordWithOtp = async (
+    email: string,
+    password: string,
+    confirmation: string,
+    otp: string
+  ): Promise<void> => {
+    setError(null);
+    try {
+      const response = await verifyEmailOtpResetApi({
+        email,
+        password,
+        password_confirmation: confirmation,
+        otp,
+      });
+      setStoredToken(response.token);
+      setToken(response.token);
+      setUser(response.user);
+    } catch (err: unknown) {
+      const apiErr = err as ApiError;
+      const msg = apiErr.message || 'Password reset failed';
+      setError(msg);
+      throw apiErr;
+    }
+  };
+
+  const loginWithFirebase = async (
+    idToken: string,
+    email?: string | null,
+    name?: string | null,
+    phone?: string | null
+  ): Promise<void> => {
+    setError(null);
+    try {
+      const response = await firebaseLoginApi({ idToken, email, name, phone });
+      setStoredToken(response.token);
+      setToken(response.token);
+      setUser(response.user);
+    } catch (err: unknown) {
+      const apiErr = err as ApiError;
+      const msg = apiErr.message || 'Firebase authentication failed';
+      setError(msg);
+      throw apiErr;
+    }
+  };
+
   const logout = async (): Promise<void> => {
     try {
       if (token) {
@@ -127,6 +206,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         error,
         login,
         register,
+        registerWithOtp,
+        resetPasswordWithOtp,
+        loginWithFirebase,
         logout,
         clearError,
       }}

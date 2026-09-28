@@ -238,3 +238,47 @@ export async function getMeApi(): Promise<{ user: User }> {
 export async function logoutApi(): Promise<{ message: string }> {
   return apiPost<{ message: string }>('/auth/logout');
 }
+
+export async function sendEmailOtpApi(data: {
+  email: string;
+  type: 'register' | 'forgot_password';
+  name?: string;
+}): Promise<{ message: string; cooldown_seconds: number }> {
+  return apiPost<{ message: string; cooldown_seconds: number }>('/auth/send-email-otp', data);
+}
+
+export async function checkEmailOtpApi(data: {
+  email: string;
+  type: 'register' | 'forgot_password';
+  otp: string;
+}): Promise<{ valid: boolean; message: string }> {
+  return apiPost<{ valid: boolean; message: string }>('/auth/check-email-otp', data);
+}
+
+export async function verifyEmailOtpRegisterApi(data: {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+  otp: string;
+}): Promise<AuthResponse> {
+  return apiPost<AuthResponse>('/auth/verify-email-otp-register', data);
+}
+
+export async function verifyEmailOtpResetApi(data: {
+  email: string;
+  password: string;
+  password_confirmation: string;
+  otp: string;
+}): Promise<AuthResponse> {
+  return apiPost<AuthResponse>('/auth/verify-email-otp-reset', data);
+}
+
+export async function firebaseLoginApi(data: {
+  idToken: string;
+  email?: string | null;
+  name?: string | null;
+  phone?: string | null;
+}): Promise<AuthResponse> {
+  return apiPost<AuthResponse>('/auth/firebase-login', data);
+}
