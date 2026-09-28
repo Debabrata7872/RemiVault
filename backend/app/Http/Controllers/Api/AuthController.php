@@ -161,66 +161,78 @@ class AuthController extends Controller
      */
     public function sendEmailOtp(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'email' => 'required|email|max:255',
-            'type' => 'required|in:register,forgot_password',
-            'name' => 'nullable|string|max:100',
-        ]);
-
-        $email = strtolower(trim($validated['email']));
-        $type = $validated['type'];
-        $name = $validated['name'] ?? null;
-
-        // Validation for registration: make sure email isn't already taken
-        if ($type === 'register' && User::where('email', $email)->exists()) {
-            return response()->json([
-                'message' => 'This email address is already registered. Please sign in instead.',
-            ], 422);
-        }
-
-        // Validation for forgot_password: make sure account exists
-        if ($type === 'forgot_password' && !User::where('email', $email)->exists()) {
-            return response()->json([
-                'message' => 'No RemiVault account found with this email address.',
-            ], 404);
-        }
-
-        // 60-second cooldown check to prevent abuse and spamming
-        $cooldownKey = "otp_cooldown_{$type}_{$email}";
-        if (\Illuminate\Support\Facades\Cache::has($cooldownKey)) {
-            return response()->json([
-                'message' => 'Please wait 60 seconds before requesting another code.',
-            ], 429);
-        }
-
-        // Generate cryptographically random 6-digit code
-        $otp = (string) random_int(100000, 999999);
-
-        // Store hashed OTP in cache for 10 minutes
-        $cacheKey = "otp_{$type}_{$email}";
-        \Illuminate\Support\Facades\Cache::put($cacheKey, [
-            'code' => Hash::make($otp),
-            'attempts' => 0,
-            'name' => $name,
-        ], now()->addMinutes(10));
-
-        // Set cooldown for 60 seconds
-        \Illuminate\Support\Facades\Cache::put($cooldownKey, true, now()->addSeconds(60));
-
-        // Dispatch custom branded HTML email
         try {
-            \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\OtpMail($otp, $type, $name));
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error("Failed to send OTP email: {$e->getMessage()}");
+            $validated = $request->validate([
+                'email' => 'required|email|max:255',
+                'type' => 'required|in:register,forgot_password',
+                'name' => 'nullable|string|max:100',
+            ]);
+
+            $email = strtolower(trim($validated['email']));
+            $type = $validated['type'];
+            $name = $validated['name'] ?? null;
+
+            // Validation for registration: make sure email isn't already taken
+            if ($type === 'register' && User::where('email', $email)->exists()) {
+                return response()->json([
+                    'message' => 'This email address is already registered. Please sign in instead.',
+                ], 422);
+            }
+
+            // Validation for forgot_password: make sure account exists
+            if ($type === 'forgot_password' && !User::where('email', $email)->exists()) {
+                return response()->json([
+                    'message' => 'No RemiVault account found with this email address.',
+                ], 404);
+            }
+
+            // 60-second cooldown check to prevent abuse and spamming
+            $cooldownKey = "otp_cooldown_{$type}_{$email}";
+            if (\Illuminate\Support\Facades\Cache::has($cooldownKey)) {
+                return response()->json([
+                    'message' => 'Please wait 60 seconds before requesting another code.',
+                ], 429);
+            }
+
+            // Generate cryptographically random 6-digit code
+            $otp = (string) random_int(100000, 999999);
+
+            // Store hashed OTP in cache for 10 minutes
+            $cacheKey = "otp_{$type}_{$email}";
+            \Illuminate\Support\Facades\Cache::put($cacheKey, [
+                'code' => Hash::make($otp),
+                'attempts' => 0,
+                'name' => $name,
+            ], now()->addMinutes(10));
+
+            // Set cooldown for 60 seconds
+            \Illuminate\Support\Facades\Cache::put($cooldownKey, true, now()->addSeconds(60));
+
+            // Dispatch custom branded HTML email
+            try {
+                \Illuminate\Support\Facades\Mail::to($email)->send(new \App\Mail\OtpMail($otp, $type, $name));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error("Failed to send OTP email: {$e->getMessage()}");
+                return response()->json([
+                    'message' => 'Failed to send verification email. Please check your email configuration.',
+                ], 500);
+            }
+
             return response()->json([
-                'message' => 'Failed to send verification email. Please check your email configuration.',
+                'message' => 'A 6-digit verification code has been sent to your email.',
+                'cooldown_seconds' => 60,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => $e->validator->errors()->first() ?: 'Validation failed.',
+                'errors' => $e->validator->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("sendEmailOtp exception: {$e->getMessage()}");
+            return response()->json([
+                'message' => 'Unable to dispatch verification code: ' . $e->getMessage(),
             ], 500);
         }
-
-        return response()->json([
-            'message' => 'A 6-digit verification code has been sent to your email.',
-            'cooldown_seconds' => 60,
-        ]);
     }
 
     /**

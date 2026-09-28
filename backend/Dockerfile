@@ -5,11 +5,13 @@ RUN apk add --no-cache \
     git \
     curl \
     bash \
+    ca-certificates \
     libpng-dev \
     libxml2-dev \
     libzip-dev \
     oniguruma-dev \
     mysql-client \
+    && update-ca-certificates \
     && docker-php-ext-install pdo_mysql mbstring pcntl bcmath zip
 
 # Copy Composer from official image
