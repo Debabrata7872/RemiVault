@@ -122,12 +122,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
 
             <div className="settings-user-info-card">
-              <div className="settings-user-avatar">
-                <User size={20} />
-              </div>
-              <div className="settings-user-meta">
-                <span className="settings-user-name">{user.name}</span>
-                <span className="settings-user-email">{user.email}</span>
+              <div className="settings-user-profile-group">
+                <div className="settings-user-avatar">
+                  <User size={18} />
+                </div>
+                <div className="settings-user-meta">
+                  <span className="settings-user-name">{user.name}</span>
+                  <span className="settings-user-email" title={user.email}>{user.email}</span>
+                </div>
               </div>
               <div className="settings-security-tag">
                 <Shield size={13} color="#10b981" />
@@ -139,11 +141,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
         {/* System & Storage Info */}
         <div className="settings-footer-info">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-muted)' }}>
+          <div className="settings-footer-info-text">
             <HardDrive size={13} />
             <span>Preferences saved to localStorage</span>
           </div>
-          <button className="btn btn-primary" onClick={onClose} style={{ padding: '0.45rem 1.25rem', fontSize: '0.85rem' }}>
+          <button className="btn btn-primary settings-footer-btn" onClick={onClose}>
             Done
           </button>
         </div>
