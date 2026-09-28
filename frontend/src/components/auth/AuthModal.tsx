@@ -14,7 +14,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { sendEmailOtpApi, checkEmailOtpApi } from '../../services/api';
+import { sendEmailOtpApi, checkEmailOtpApi, type ApiError } from '../../services/api';
 import { auth, googleProvider } from '../../config/firebase';
 import { 
   signInWithPopup, 
@@ -97,10 +97,82 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [clientError, setClientError] = useState<string | null>(null);
 
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isCancelledRef = useRef<boolean>(false);
+
+  // Helper to start an abortable async operation
+  const startAsyncOp = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    isCancelledRef.current = false;
+    return abortControllerRef.current;
+  };
+
+  // Forceful closure: immediately aborts network calls, ignores pending Google/SMS results, and closes modal
+  const handleForceClose = () => {
+    isCancelledRef.current = true;
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    if (recaptchaVerifierRef.current) {
+      try {
+        recaptchaVerifierRef.current.clear();
+      } catch {
+        // ignore
+      }
+      recaptchaVerifierRef.current = null;
+    }
+    setIsSubmitting(false);
+    setIsGoogleSubmitting(false);
+    setClientError(null);
+    clearError();
+    onClose();
+  };
+
+  // Close forcefully on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleForceClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      isCancelledRef.current = true;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch {
+          // ignore
+        }
+        recaptchaVerifierRef.current = null;
+      }
+    };
+  }, []);
 
   // Sync state whenever modal opens or initialMode changes
   useEffect(() => {
     if (isOpen) {
+      isCancelledRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
       setMode(initialMode);
       setStep('details');
       setName('');
@@ -113,6 +185,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setClientError(null);
       setConfirmationResult(null);
       setVerifiedFirebaseToken(null);
+      setIsSubmitting(false);
+      setIsGoogleSubmitting(false);
       clearError();
     }
   }, [isOpen, initialMode]);
@@ -126,19 +200,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  // Clean up recaptcha
-  useEffect(() => {
-    return () => {
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
-        recaptchaVerifierRef.current = null;
-      }
-    };
-  }, []);
-
   if (!isOpen) return null;
 
   const handleModeSwitch = (newMode: AuthMode) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsSubmitting(false);
+    setIsGoogleSubmitting(false);
     setMode(newMode);
     setStep('details');
     setOtp('');
@@ -155,29 +225,53 @@ export const AuthModal: React.FC<AuthModalProps> = ({
    * Google Sign-In with Firebase Popup (Sleek 1-click)
    */
   const handleGoogleSignIn = async () => {
+    const controller = startAsyncOp();
     setClientError(null);
     clearError();
     setIsGoogleSubmitting(true);
 
     try {
       const result = await signInWithPopup(auth, googleProvider);
+
+      if (isCancelledRef.current || controller.signal.aborted) {
+        return;
+      }
+
       const idToken = await result.user.getIdToken();
+      if (isCancelledRef.current || controller.signal.aborted) {
+        return;
+      }
+
       await loginWithFirebase(
         idToken, 
         result.user.email, 
         result.user.displayName, 
-        result.user.phoneNumber
+        result.user.phoneNumber,
+        { signal: controller.signal }
       );
+
+      if (isCancelledRef.current || controller.signal.aborted) {
+        return;
+      }
+
       onClose();
     } catch (err: unknown) {
-      const errorObj = err as { code?: string; message?: string };
-      if (errorObj.code === 'auth/popup-closed-by-user') {
+      if (isCancelledRef.current || controller.signal.aborted) {
+        return;
+      }
+      const errorObj = err as { code?: string; message?: string; isAborted?: boolean };
+      if (errorObj.isAborted) {
+        return;
+      }
+      if (errorObj.code === 'auth/popup-closed-by-user' || errorObj.code === 'auth/cancelled-popup-request') {
         setClientError('Google sign-in was cancelled.');
       } else {
         setClientError(errorObj.message || 'Google sign-in failed. Please try again.');
       }
     } finally {
-      setIsGoogleSubmitting(false);
+      if (!isCancelledRef.current) {
+        setIsGoogleSubmitting(false);
+      }
     }
   };
 
@@ -200,17 +294,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    const controller = startAsyncOp();
     setIsSubmitting(true);
 
     try {
       if (isEmail(cleanInput)) {
         // Email OTP via Gmail SMTP
         const otpType = mode === 'register' ? 'register' : 'forgot_password';
-        const res = await sendEmailOtpApi({
-          email: cleanInput,
-          type: otpType,
-          name: mode === 'register' ? name.trim() : undefined,
-        });
+        const res = await sendEmailOtpApi(
+          {
+            email: cleanInput,
+            type: otpType,
+            name: mode === 'register' ? name.trim() : undefined,
+          },
+          { signal: controller.signal }
+        );
+
+        if (isCancelledRef.current || controller.signal.aborted) return;
 
         setSuccessNotice(res.message);
         setCooldown(res.cooldown_seconds || 60);
@@ -225,16 +325,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         const confirmation = await signInWithPhoneNumber(auth, cleanPhone, recaptchaVerifierRef.current);
+        if (isCancelledRef.current || controller.signal.aborted) return;
+
         setConfirmationResult(confirmation);
         setCooldown(60);
         setSuccessNotice(`Verification code sent to ${maskIdentifier(cleanPhone)}`);
         setStep('otp');
       }
     } catch (err: unknown) {
-      const apiErr = err as { message?: string };
-      setClientError(apiErr.message || 'Failed to dispatch verification code. Please check your input.');
+      if (isCancelledRef.current || controller.signal.aborted) return;
+      const apiErr = err as ApiError;
+      if (apiErr?.isAborted) return;
+      setClientError(apiErr?.message || 'Failed to dispatch verification code. Please check your input.');
     } finally {
-      setIsSubmitting(false);
+      if (!isCancelledRef.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -252,6 +358,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    const controller = startAsyncOp();
     setIsSubmitting(true);
 
     try {
@@ -260,11 +367,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (isEmail(cleanInput)) {
         // Check email OTP with backend
         const otpType = mode === 'register' ? 'register' : 'forgot_password';
-        await checkEmailOtpApi({
-          email: cleanInput,
-          type: otpType,
-          otp: cleanOtp,
-        });
+        await checkEmailOtpApi(
+          {
+            email: cleanInput,
+            type: otpType,
+            otp: cleanOtp,
+          },
+          { signal: controller.signal }
+        );
+
+        if (isCancelledRef.current || controller.signal.aborted) return;
 
         // OTP matches! Advance to password panel
         setSuccessNotice('Security code verified! Please set your password.');
@@ -276,7 +388,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         const userCredential = await confirmationResult.confirm(cleanOtp);
+        if (isCancelledRef.current || controller.signal.aborted) return;
+
         const idToken = await userCredential.user.getIdToken();
+        if (isCancelledRef.current || controller.signal.aborted) return;
+
         setVerifiedFirebaseToken(idToken);
 
         // OTP matches! Advance to password panel
@@ -284,10 +400,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setStep('password');
       }
     } catch (err: unknown) {
-      const apiErr = err as { message?: string };
-      setClientError(apiErr.message || 'Invalid or expired verification code. Please try again.');
+      if (isCancelledRef.current || controller.signal.aborted) return;
+      const apiErr = err as ApiError;
+      if (apiErr?.isAborted) return;
+      setClientError(apiErr?.message || 'Invalid or expired verification code. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      if (!isCancelledRef.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -308,6 +428,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    const controller = startAsyncOp();
     setIsSubmitting(true);
 
     try {
@@ -315,24 +436,49 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       if (mode === 'register') {
         if (isEmail(cleanInput)) {
-          await registerWithOtp(name.trim(), cleanInput, password, passwordConfirmation, otp.trim());
+          await registerWithOtp(
+            name.trim(), 
+            cleanInput, 
+            password, 
+            passwordConfirmation, 
+            otp.trim(),
+            { signal: controller.signal }
+          );
         } else {
           // Phone registration
           if (!verifiedFirebaseToken) {
             throw new Error('Phone verification expired. Please try again.');
           }
-          await loginWithFirebase(verifiedFirebaseToken, null, name.trim(), cleanInput);
+          await loginWithFirebase(
+            verifiedFirebaseToken, 
+            null, 
+            name.trim(), 
+            cleanInput,
+            { signal: controller.signal }
+          );
         }
+        if (isCancelledRef.current || controller.signal.aborted) return;
         onClose();
       } else if (mode === 'forgot_password') {
-        await resetPasswordWithOtp(cleanInput, password, passwordConfirmation, otp.trim());
+        await resetPasswordWithOtp(
+          cleanInput, 
+          password, 
+          passwordConfirmation, 
+          otp.trim(),
+          { signal: controller.signal }
+        );
+        if (isCancelledRef.current || controller.signal.aborted) return;
         onClose();
       }
     } catch (err: unknown) {
-      const apiErr = err as { message?: string };
-      setClientError(apiErr.message || 'Failed to complete. Please try again.');
+      if (isCancelledRef.current || controller.signal.aborted) return;
+      const apiErr = err as ApiError;
+      if (apiErr?.isAborted) return;
+      setClientError(apiErr?.message || 'Failed to complete. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      if (!isCancelledRef.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -349,21 +495,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    const controller = startAsyncOp();
     setIsSubmitting(true);
     try {
-      await login(identifier.trim(), password);
+      await login(identifier.trim(), password, { signal: controller.signal });
+      if (isCancelledRef.current || controller.signal.aborted) return;
       onClose();
-    } catch {
+    } catch (err: unknown) {
+      if (isCancelledRef.current || controller.signal.aborted) return;
       // Error handled in AuthContext
     } finally {
-      setIsSubmitting(false);
+      if (!isCancelledRef.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 
   const activeError = clientError || error;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={handleForceClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         {/* Hidden recaptcha element for Firebase Phone SMS */}
         <div id="recaptcha-container"></div>
@@ -399,7 +550,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </p>
             </div>
           </div>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close modal">
+          <button className="modal-close-btn" onClick={handleForceClose} aria-label="Close modal">
             <X size={20} />
           </button>
         </div>

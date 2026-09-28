@@ -3,12 +3,14 @@
  * 
  * Architecture Notes:
  * - Centralizes HTTP communication with the Laravel REST API.
- * - Always sends 'Accept: application/json' so Laravel returns JSON responses
- *   rather than redirecting to a login or home route on errors.
+ * - Uses relative '/api' base path by default so Vite dev server proxy seamlessly
+ *   routes requests from both localhost and mobile devices on local Wi-Fi.
+ * - Supports AbortController and automatic 15s request timeouts to prevent UI hang.
+ * - Always sends 'Accept: application/json' so Laravel returns JSON responses.
  * - Manages Bearer tokens for stateless authorization.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 const TOKEN_KEY = 'remivault_auth_token';
 
 export interface User {
@@ -36,6 +38,12 @@ export interface ApiError {
   message: string;
   errors?: Record<string, string[]>;
   status?: number;
+  isAborted?: boolean;
+}
+
+export interface RequestOptions {
+  signal?: AbortSignal;
+  timeoutMs?: number;
 }
 
 /**
@@ -71,17 +79,65 @@ function getHeaders(): Record<string, string> {
 }
 
 /**
+ * Internal fetch wrapper with timeout and abort handling
+ */
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  options?: RequestOptions
+): Promise<Response> {
+  const timeoutMs = options?.timeoutMs ?? 15000; // 15 seconds default timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const onAbort = () => controller.abort();
+  if (options?.signal) {
+    options.signal.addEventListener('abort', onAbort, { once: true });
+  }
+
+  try {
+    const response = await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+    return response;
+  } catch (err: unknown) {
+    if (controller.signal.aborted) {
+      if (options?.signal?.aborted) {
+        throw { message: 'Operation cancelled.', isAborted: true } as ApiError;
+      }
+      throw {
+        message: 'Connection timed out. Please check your connection and try again.',
+        status: 408,
+      } as ApiError;
+    }
+    throw {
+      message: (err as Error)?.message || 'Network error occurred. Please verify backend is running.',
+    } as ApiError;
+  } finally {
+    clearTimeout(timeoutId);
+    if (options?.signal) {
+      options.signal.removeEventListener('abort', onAbort);
+    }
+  }
+}
+
+/**
  * Perform a typed HTTP GET request
  */
-export async function apiGet<T>(endpoint: string): Promise<T> {
+export async function apiGet<T>(endpoint: string, options?: RequestOptions): Promise<T> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${API_BASE_URL}${cleanEndpoint}`;
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: getHeaders(),
-    credentials: 'include',
-  });
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: 'GET',
+      headers: getHeaders(),
+      credentials: 'include',
+    },
+    options
+  );
 
   if (!response.ok) {
     let errorData: ApiError;
@@ -100,16 +156,24 @@ export async function apiGet<T>(endpoint: string): Promise<T> {
 /**
  * Perform a typed HTTP POST request
  */
-export async function apiPost<T, B = unknown>(endpoint: string, body?: B): Promise<T> {
+export async function apiPost<T, B = unknown>(
+  endpoint: string,
+  body?: B,
+  options?: RequestOptions
+): Promise<T> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${API_BASE_URL}${cleanEndpoint}`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    credentials: 'include',
-  });
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: 'POST',
+      headers: getHeaders(),
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      credentials: 'include',
+    },
+    options
+  );
 
   if (!response.ok) {
     let errorData: ApiError;
@@ -128,16 +192,24 @@ export async function apiPost<T, B = unknown>(endpoint: string, body?: B): Promi
 /**
  * Perform a typed HTTP PUT request
  */
-export async function apiPut<T, B = unknown>(endpoint: string, body?: B): Promise<T> {
+export async function apiPut<T, B = unknown>(
+  endpoint: string,
+  body?: B,
+  options?: RequestOptions
+): Promise<T> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${API_BASE_URL}${cleanEndpoint}`;
 
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: getHeaders(),
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    credentials: 'include',
-  });
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      credentials: 'include',
+    },
+    options
+  );
 
   if (!response.ok) {
     let errorData: ApiError;
@@ -156,16 +228,24 @@ export async function apiPut<T, B = unknown>(endpoint: string, body?: B): Promis
 /**
  * Perform a typed HTTP PATCH request
  */
-export async function apiPatch<T, B = unknown>(endpoint: string, body?: B): Promise<T> {
+export async function apiPatch<T, B = unknown>(
+  endpoint: string,
+  body?: B,
+  options?: RequestOptions
+): Promise<T> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${API_BASE_URL}${cleanEndpoint}`;
 
-  const response = await fetch(url, {
-    method: 'PATCH',
-    headers: getHeaders(),
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    credentials: 'include',
-  });
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      credentials: 'include',
+    },
+    options
+  );
 
   if (!response.ok) {
     let errorData: ApiError;
@@ -184,15 +264,19 @@ export async function apiPatch<T, B = unknown>(endpoint: string, body?: B): Prom
 /**
  * Perform a typed HTTP DELETE request
  */
-export async function apiDelete<T>(endpoint: string): Promise<T> {
+export async function apiDelete<T>(endpoint: string, options?: RequestOptions): Promise<T> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${API_BASE_URL}${cleanEndpoint}`;
 
-  const response = await fetch(url, {
-    method: 'DELETE',
-    headers: getHeaders(),
-    credentials: 'include',
-  });
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: 'DELETE',
+      headers: getHeaders(),
+      credentials: 'include',
+    },
+    options
+  );
 
   if (!response.ok) {
     let errorData: ApiError;
@@ -215,70 +299,95 @@ export async function checkBackendHealth(): Promise<HealthResponse> {
   return apiGet<HealthResponse>('/health');
 }
 
-export async function registerApi(data: {
-  name: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-}): Promise<AuthResponse> {
-  return apiPost<AuthResponse>('/auth/register', data);
+export async function registerApi(
+  data: {
+    name: string;
+    email: string;
+    password: string;
+    password_confirmation: string;
+  },
+  options?: RequestOptions
+): Promise<AuthResponse> {
+  return apiPost<AuthResponse>('/auth/register', data, options);
 }
 
-export async function loginApi(data: {
-  email: string;
-  password: string;
-}): Promise<AuthResponse> {
-  return apiPost<AuthResponse>('/auth/login', data);
+export async function loginApi(
+  data: {
+    email: string;
+    password: string;
+  },
+  options?: RequestOptions
+): Promise<AuthResponse> {
+  return apiPost<AuthResponse>('/auth/login', data, options);
 }
 
-export async function getMeApi(): Promise<{ user: User }> {
-  return apiGet<{ user: User }>('/auth/me');
+export async function getMeApi(options?: RequestOptions): Promise<{ user: User }> {
+  return apiGet<{ user: User }>('/auth/me', options);
 }
 
-export async function logoutApi(): Promise<{ message: string }> {
-  return apiPost<{ message: string }>('/auth/logout');
+export async function logoutApi(options?: RequestOptions): Promise<{ message: string }> {
+  return apiPost<{ message: string }>('/auth/logout', undefined, options);
 }
 
-export async function sendEmailOtpApi(data: {
-  email: string;
-  type: 'register' | 'forgot_password';
-  name?: string;
-}): Promise<{ message: string; cooldown_seconds: number }> {
-  return apiPost<{ message: string; cooldown_seconds: number }>('/auth/send-email-otp', data);
+export async function sendEmailOtpApi(
+  data: {
+    email: string;
+    type: 'register' | 'forgot_password';
+    name?: string;
+  },
+  options?: RequestOptions
+): Promise<{ message: string; cooldown_seconds: number }> {
+  return apiPost<{ message: string; cooldown_seconds: number }>(
+    '/auth/send-email-otp',
+    data,
+    { timeoutMs: 30000, ...options }
+  );
 }
 
-export async function checkEmailOtpApi(data: {
-  email: string;
-  type: 'register' | 'forgot_password';
-  otp: string;
-}): Promise<{ valid: boolean; message: string }> {
-  return apiPost<{ valid: boolean; message: string }>('/auth/check-email-otp', data);
+export async function checkEmailOtpApi(
+  data: {
+    email: string;
+    type: 'register' | 'forgot_password';
+    otp: string;
+  },
+  options?: RequestOptions
+): Promise<{ valid: boolean; message: string }> {
+  return apiPost<{ valid: boolean; message: string }>('/auth/check-email-otp', data, options);
 }
 
-export async function verifyEmailOtpRegisterApi(data: {
-  name: string;
-  email: string;
-  password: string;
-  password_confirmation: string;
-  otp: string;
-}): Promise<AuthResponse> {
-  return apiPost<AuthResponse>('/auth/verify-email-otp-register', data);
+export async function verifyEmailOtpRegisterApi(
+  data: {
+    name: string;
+    email: string;
+    password: string;
+    password_confirmation: string;
+    otp: string;
+  },
+  options?: RequestOptions
+): Promise<AuthResponse> {
+  return apiPost<AuthResponse>('/auth/verify-email-otp-register', data, options);
 }
 
-export async function verifyEmailOtpResetApi(data: {
-  email: string;
-  password: string;
-  password_confirmation: string;
-  otp: string;
-}): Promise<AuthResponse> {
-  return apiPost<AuthResponse>('/auth/verify-email-otp-reset', data);
+export async function verifyEmailOtpResetApi(
+  data: {
+    email: string;
+    password: string;
+    password_confirmation: string;
+    otp: string;
+  },
+  options?: RequestOptions
+): Promise<AuthResponse> {
+  return apiPost<AuthResponse>('/auth/verify-email-otp-reset', data, options);
 }
 
-export async function firebaseLoginApi(data: {
-  idToken: string;
-  email?: string | null;
-  name?: string | null;
-  phone?: string | null;
-}): Promise<AuthResponse> {
-  return apiPost<AuthResponse>('/auth/firebase-login', data);
+export async function firebaseLoginApi(
+  data: {
+    idToken: string;
+    email?: string | null;
+    name?: string | null;
+    phone?: string | null;
+  },
+  options?: RequestOptions
+): Promise<AuthResponse> {
+  return apiPost<AuthResponse>('/auth/firebase-login', data, options);
 }

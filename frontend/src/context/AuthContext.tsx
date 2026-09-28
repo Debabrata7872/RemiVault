@@ -11,18 +11,18 @@ import {
   verifyEmailOtpResetApi,
   firebaseLoginApi
 } from '../services/api';
-import type { User, ApiError } from '../services/api';
+import type { User, ApiError, RequestOptions } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, confirmation: string) => Promise<void>;
-  registerWithOtp: (name: string, email: string, password: string, confirmation: string, otp: string) => Promise<void>;
-  resetPasswordWithOtp: (email: string, password: string, confirmation: string, otp: string) => Promise<void>;
-  loginWithFirebase: (idToken: string, email?: string | null, name?: string | null, phone?: string | null) => Promise<void>;
+  login: (email: string, password: string, options?: RequestOptions) => Promise<void>;
+  register: (name: string, email: string, password: string, confirmation: string, options?: RequestOptions) => Promise<void>;
+  registerWithOtp: (name: string, email: string, password: string, confirmation: string, otp: string, options?: RequestOptions) => Promise<void>;
+  resetPasswordWithOtp: (email: string, password: string, confirmation: string, otp: string, options?: RequestOptions) => Promise<void>;
+  loginWithFirebase: (idToken: string, email?: string | null, name?: string | null, phone?: string | null, options?: RequestOptions) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -66,17 +66,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     verifyToken();
   }, []);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (email: string, password: string, options?: RequestOptions): Promise<void> => {
     setError(null);
     try {
-      const response = await loginApi({ email, password });
+      const response = await loginApi({ email, password }, options);
       setStoredToken(response.token);
       setToken(response.token);
       setUser(response.user);
     } catch (err: unknown) {
       const apiErr = err as ApiError;
-      const msg = apiErr.errors?.email?.[0] || apiErr.message || 'Login failed';
-      setError(msg);
+      if (!apiErr.isAborted) {
+        const msg = apiErr.errors?.email?.[0] || apiErr.message || 'Login failed';
+        setError(msg);
+      }
       throw apiErr;
     }
   };
@@ -85,7 +87,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     name: string, 
     email: string, 
     password: string, 
-    confirmation: string
+    confirmation: string,
+    options?: RequestOptions
   ): Promise<void> => {
     setError(null);
     try {
@@ -94,15 +97,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email,
         password,
         password_confirmation: confirmation,
-      });
+      }, options);
       setStoredToken(response.token);
       setToken(response.token);
       setUser(response.user);
     } catch (err: unknown) {
       const apiErr = err as ApiError;
-      const firstField = apiErr.errors ? Object.keys(apiErr.errors)[0] : null;
-      const msg = firstField ? apiErr.errors![firstField][0] : apiErr.message || 'Registration failed';
-      setError(msg);
+      if (!apiErr.isAborted) {
+        const firstField = apiErr.errors ? Object.keys(apiErr.errors)[0] : null;
+        const msg = firstField ? apiErr.errors![firstField][0] : apiErr.message || 'Registration failed';
+        setError(msg);
+      }
       throw apiErr;
     }
   };
@@ -112,7 +117,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     email: string,
     password: string,
     confirmation: string,
-    otp: string
+    otp: string,
+    options?: RequestOptions
   ): Promise<void> => {
     setError(null);
     try {
@@ -122,15 +128,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password,
         password_confirmation: confirmation,
         otp,
-      });
+      }, options);
       setStoredToken(response.token);
       setToken(response.token);
       setUser(response.user);
     } catch (err: unknown) {
       const apiErr = err as ApiError;
-      const firstField = apiErr.errors ? Object.keys(apiErr.errors)[0] : null;
-      const msg = firstField ? apiErr.errors![firstField][0] : apiErr.message || 'OTP Verification failed';
-      setError(msg);
+      if (!apiErr.isAborted) {
+        const firstField = apiErr.errors ? Object.keys(apiErr.errors)[0] : null;
+        const msg = firstField ? apiErr.errors![firstField][0] : apiErr.message || 'OTP Verification failed';
+        setError(msg);
+      }
       throw apiErr;
     }
   };
@@ -139,7 +147,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     email: string,
     password: string,
     confirmation: string,
-    otp: string
+    otp: string,
+    options?: RequestOptions
   ): Promise<void> => {
     setError(null);
     try {
@@ -148,14 +157,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password,
         password_confirmation: confirmation,
         otp,
-      });
+      }, options);
       setStoredToken(response.token);
       setToken(response.token);
       setUser(response.user);
     } catch (err: unknown) {
       const apiErr = err as ApiError;
-      const msg = apiErr.message || 'Password reset failed';
-      setError(msg);
+      if (!apiErr.isAborted) {
+        const msg = apiErr.message || 'Password reset failed';
+        setError(msg);
+      }
       throw apiErr;
     }
   };
@@ -164,18 +175,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     idToken: string,
     email?: string | null,
     name?: string | null,
-    phone?: string | null
+    phone?: string | null,
+    options?: RequestOptions
   ): Promise<void> => {
     setError(null);
     try {
-      const response = await firebaseLoginApi({ idToken, email, name, phone });
+      const response = await firebaseLoginApi({ idToken, email, name, phone }, options);
       setStoredToken(response.token);
       setToken(response.token);
       setUser(response.user);
     } catch (err: unknown) {
       const apiErr = err as ApiError;
-      const msg = apiErr.message || 'Firebase authentication failed';
-      setError(msg);
+      if (!apiErr.isAborted) {
+        const msg = apiErr.message || 'Firebase authentication failed';
+        setError(msg);
+      }
       throw apiErr;
     }
   };

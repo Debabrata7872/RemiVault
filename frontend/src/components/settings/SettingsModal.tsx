@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Sun, Moon, Monitor, Check, User, Shield, HardDrive, Sliders } from 'lucide-react';
+import { X, Sun, Moon, Monitor, Check, User, Shield, HardDrive, Sliders, LogOut } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import type { Theme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -11,7 +11,7 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { userPreference, setTheme } = useTheme();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   // Close on Escape key
   useEffect(() => {
@@ -122,19 +122,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
 
             <div className="settings-user-info-card">
-              <div className="settings-user-profile-group">
-                <div className="settings-user-avatar">
-                  <User size={18} />
-                </div>
-                <div className="settings-user-meta">
+              <div className="settings-user-avatar">
+                <User size={18} />
+              </div>
+              <div className="settings-user-meta">
+                <div className="settings-user-name-row">
                   <span className="settings-user-name">{user.name}</span>
-                  <span className="settings-user-email" title={user.email}>{user.email}</span>
+                  <div className="settings-security-tag">
+                    <Shield size={11} color="#10b981" />
+                    <span>Isolated Vault</span>
+                  </div>
                 </div>
+                <span className="settings-user-email" title={user.email}>{user.email}</span>
               </div>
-              <div className="settings-security-tag">
-                <Shield size={13} color="#10b981" />
-                <span>Isolated Vault</span>
-              </div>
+            </div>
+
+            <div className="settings-logout-row">
+              <button 
+                type="button" 
+                className="btn settings-logout-btn" 
+                onClick={() => {
+                  onClose();
+                  logout();
+                }}
+              >
+                <LogOut size={15} />
+                <span>Log Out of RemiVault</span>
+              </button>
             </div>
           </section>
         )}
@@ -143,7 +157,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         <div className="settings-footer-info">
           <div className="settings-footer-info-text">
             <HardDrive size={13} />
-            <span>Preferences saved to localStorage</span>
+            <span>Preferences saved locally</span>
           </div>
           <button className="btn btn-primary settings-footer-btn" onClick={onClose}>
             Done

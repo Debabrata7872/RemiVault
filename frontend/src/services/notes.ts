@@ -2,7 +2,7 @@
  * RemiVault Notes API Client
  */
 
-import { apiGet, apiPost } from './api';
+import { apiGet, apiPost, apiPut, apiDelete } from './api';
 
 export type NoteColor = 'default' | 'indigo' | 'emerald' | 'amber' | 'rose' | 'cyan';
 
@@ -44,49 +44,13 @@ export async function createNoteApi(payload: NotePayload): Promise<Note> {
  * Update an existing note
  */
 export async function updateNoteApi(id: number, payload: Partial<NotePayload>): Promise<Note> {
-  // Using custom PUT via fetch wrapper
-  const cleanUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/notes/${id}`;
-  const token = localStorage.getItem('remivault_auth_token');
-
-  const response = await fetch(cleanUrl, {
-    method: 'PUT',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(payload),
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to update note' }));
-    throw error;
-  }
-
-  const data = await response.json();
-  return data.note;
+  const response = await apiPut<{ message: string; note: Note }>(`/notes/${id}`, payload);
+  return response.note;
 }
 
 /**
  * Delete a note
  */
 export async function deleteNoteApi(id: number): Promise<void> {
-  const cleanUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/notes/${id}`;
-  const token = localStorage.getItem('remivault_auth_token');
-
-  const response = await fetch(cleanUrl, {
-    method: 'DELETE',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    },
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to delete note' }));
-    throw error;
-  }
+  await apiDelete<{ message: string }>(`/notes/${id}`);
 }

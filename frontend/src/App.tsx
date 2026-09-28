@@ -155,10 +155,16 @@ const RemiVaultApp: React.FC = () => {
         <div className="navbar-actions">
           {user ? (
             <div className="navbar-user-group">
-              <div className="badge badge-primary user-nav-badge">
+              <button 
+                type="button"
+                className="badge badge-primary user-nav-badge"
+                onClick={() => setIsSettingsOpen(true)}
+                title="Account Settings & Preferences"
+                style={{ cursor: 'pointer', border: 'none' }}
+              >
                 <UserCheck size={14} />
                 <span className="user-nav-name">{user.name}</span>
-              </div>
+              </button>
               <button 
                 className="btn btn-secondary nav-settings-btn" 
                 onClick={() => setIsSettingsOpen(true)}
