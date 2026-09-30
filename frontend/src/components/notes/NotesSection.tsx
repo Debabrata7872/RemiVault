@@ -374,21 +374,10 @@ export const NotesSection: React.FC = () => {
                       key={c.key}
                       type="button"
                       onClick={() => setFormColor(c.key)}
-                      style={{
-                        padding: '0.35rem 0.75rem',
-                        borderRadius: 'var(--radius-sm)',
-                        border: `1px solid ${c.border}`,
-                        background: formColor === c.key ? c.bg : 'rgba(255, 255, 255, 0.03)',
-                        color: 'var(--text-primary)',
-                        cursor: 'pointer',
-                        fontSize: '0.8rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                      }}
+                      className={`note-color-chip note-color-chip-${c.key} ${formColor === c.key ? 'selected' : ''}`}
                     >
                       {formColor === c.key && <Check size={12} />}
-                      {c.label}
+                      <span>{c.label}</span>
                     </button>
                   ))}
                 </div>
@@ -433,7 +422,7 @@ export const NotesSection: React.FC = () => {
     return (
       <div 
         key={note.id} 
-        className={`card note-card ${isNew ? 'note-card-new' : ''} ${isUpdated ? 'note-card-updated' : ''} ${isDeleting ? 'note-card-deleting' : ''} ${isPinning ? 'note-card-pin-anim' : ''}`}
+        className={`card note-card note-color-${note.color} ${isNew ? 'note-card-new' : ''} ${isUpdated ? 'note-card-updated' : ''} ${isDeleting ? 'note-card-deleting' : ''} ${isPinning ? 'note-card-pin-anim' : ''}`}
         style={{
           borderColor: colorCfg.border,
           background: colorCfg.bg,

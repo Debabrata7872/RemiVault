@@ -4572,18 +4572,58 @@ input[type="datetime-local"] {
   text-decoration: underline;
 }
 
-/* Responsive tweaks for UserOverview on Mobile (<= 640px) */
+/* Responsive text switchers between Desktop and Mobile */
+.mobile-text {
+  display: none !important;
+}
+.desktop-text {
+  display: inline !important;
+}
+
+/* =========================================================================
+   RESPONSIVE MOBILE VIEW (<= 640px)
+   - Streamlined, high-density native-app interface for mobile
+   - Hides verbose descriptions/details paragraphs on mobile only
+   - Converts 4 Hub Cards into a sleek 2x2 interactive touch grid
+   - Desktop view retains full paragraphs, full descriptions, and wide layout
+   ========================================================================= */
 @media (max-width: 640px) {
+  .mobile-text {
+    display: inline !important;
+  }
+  .desktop-text {
+    display: none !important;
+  }
+
+  /* 1. HIDE ALL VERBOSE DESCRIPTIONS & SUBTITLES ON MOBILE ONLY */
+  .overview-subtitle,
+  .overview-card-desc,
+  .priority-widget-desc,
+  .priority-empty-desc,
+  .security-card-desc,
+  .section-desc,
+  .dates-main-subtitle,
+  .vault-main-subtitle {
+    display: none !important;
+  }
+
+  /* 2. COMPACT HERO GREETING BANNER */
   .overview-welcome-card {
-    padding: 1.25rem 1rem;
+    padding: 0.95rem 1.05rem !important;
+    border-radius: var(--radius-lg);
+  }
+
+  .overview-welcome-pill {
+    margin-bottom: 0.35rem !important;
+    padding: 0.2rem 0.55rem !important;
+    font-size: 0.72rem !important;
   }
 
   .overview-greeting {
-    font-size: 1.55rem;
-  }
-
-  .overview-subtitle {
-    font-size: 0.88rem;
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+    margin: 0 !important;
   }
 
   .overview-quick-actions {
@@ -4600,36 +4640,189 @@ input[type="datetime-local"] {
     font-size: 0.82rem;
   }
 
+  /* 3. SLEEK 2x2 INTERACTIVE MODULE GRID ON MOBILE */
   .overview-modules-grid {
-    grid-template-columns: 1fr;
-    gap: 0.85rem;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
   }
 
   .overview-module-card {
-    padding: 1.25rem 1rem;
+    padding: 0.9rem 0.85rem !important;
+    border-radius: var(--radius-lg) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    min-height: 112px !important;
+    gap: 0.4rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+  }
+
+  .overview-module-card:active {
+    transform: scale(0.97) !important;
+  }
+
+  .overview-card-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+
+  .overview-icon-box {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+  }
+
+  .overview-icon-box svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .overview-card-count {
+    font-size: 1.35rem !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+  }
+
+  .overview-card-title {
+    font-size: 0.92rem !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+    margin: 0.15rem 0 0 0 !important;
+  }
+
+  .overview-card-footer {
+    margin-top: auto !important;
+    padding-top: 0.25rem !important;
+    font-size: 0.74rem !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+
+  /* 4. PRIORITY FOCUS WIDGET (COMPACT MOBILE VIEW) */
+  .overview-priority-widget {
+    padding: 0.9rem 1rem !important;
+    border-radius: var(--radius-lg) !important;
+    gap: 0.65rem !important;
+  }
+
+  .priority-widget-header {
+    gap: 0.5rem !important;
+  }
+
+  .priority-widget-header h3 {
+    font-size: 0.95rem !important;
+  }
+
+  .priority-empty-state {
+    padding: 0.75rem 0.9rem !important;
+    gap: 0.75rem !important;
+    border-radius: var(--radius-md) !important;
+  }
+
+  .priority-empty-icon {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .priority-empty-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .priority-empty-state h4 {
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
   }
 
   .priority-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.65rem;
+    gap: 0.55rem;
+    padding: 0.75rem 0.9rem !important;
   }
 
   .priority-item-btn {
     width: 100%;
     justify-content: center;
+    padding: 0.4rem 0.75rem !important;
+  }
+
+  /* 5. SECURITY CARD (COMPACT MOBILE VIEW) */
+  .overview-security-card {
+    padding: 0.85rem 1rem !important;
+    border-radius: var(--radius-lg) !important;
   }
 
   .security-card-inner {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.65rem !important;
   }
 
+  .security-card-left {
+    gap: 0.65rem !important;
+  }
+
+  .security-shield-icon {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+  }
+
+  .security-shield-icon svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .security-card-left h4 {
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+  }
+
+  .security-badges-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.35rem !important;
+    width: 100% !important;
+  }
+
+  .security-pill {
+    font-size: 0.68rem !important;
+    padding: 0.2rem 0.5rem !important;
+  }
+
+  /* 6. INNER MODULE HEADERS ON MOBILE */
+  .notes-header,
+  .reminders-header,
+  .dates-header-row,
+  .vault-header-row {
+    margin-bottom: 0.85rem !important;
+    gap: 0.65rem !important;
+  }
+
+  .section-title,
+  .dates-main-title,
+  .vault-main-title {
+    font-size: 1.2rem !important;
+    line-height: 1.25 !important;
+  }
+
+  /* 7. APP FOOTER */
   .app-footer {
     flex-direction: column;
     align-items: center;
     text-align: center;
     gap: 0.75rem;
+    padding-top: 1.25rem !important;
+    margin-top: 1.5rem !important;
   }
 }
 
@@ -5530,3 +5723,474 @@ input[type="datetime-local"] {
 
 
 
+
+
+/* =========================================================================
+   LIGHT MODE: MODALS, CARDS, CHIPS, AND FORM CONTROLS
+   ========================================================================= */
+
+/* 1. Modal Backdrops */
+[data-theme="light"] .dates-modal-backdrop,
+[data-theme="light"] .vault-modal-backdrop,
+[data-theme="light"] .modal-backdrop {
+  background: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* 2. Modal Containers / Cards */
+[data-theme="light"] .dates-modal-card,
+[data-theme="light"] .vault-modal-card,
+[data-theme="light"] .reminder-modal-card,
+[data-theme="light"] .modal-content {
+  background: #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15) !important;
+  color: #0f172a !important;
+}
+
+/* 3. Modal Headers */
+[data-theme="light"] .dates-modal-header,
+[data-theme="light"] .vault-modal-header,
+[data-theme="light"] .modal-header {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] .dates-modal-title-group h3,
+[data-theme="light"] .vault-modal-title-group h3,
+[data-theme="light"] .modal-title {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .dates-modal-close-btn,
+[data-theme="light"] .vault-modal-close-btn,
+[data-theme="light"] .modal-close-btn {
+  color: #64748b !important;
+  background: transparent !important;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+[data-theme="light"] .dates-modal-close-btn:hover,
+[data-theme="light"] .vault-modal-close-btn:hover,
+[data-theme="light"] .modal-close-btn:hover {
+  color: #0f172a !important;
+  background: rgba(15, 23, 42, 0.06) !important;
+}
+
+/* 4. Form Labels & Checkboxes */
+[data-theme="light"] .dates-form-label,
+[data-theme="light"] .vault-form-label,
+[data-theme="light"] .dates-checkbox-label,
+[data-theme="light"] .vault-checkbox-label,
+[data-theme="light"] .reminder-form .form-label,
+[data-theme="light"] .form-label {
+  color: #1e293b !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="light"] .dates-checkbox-label,
+[data-theme="light"] .vault-checkbox-label {
+  font-weight: 500 !important;
+  color: #334155 !important;
+}
+
+/* 5. Category Pick Buttons in Light Mode (Dates & Vault) */
+[data-theme="light"] .dates-cat-pick-btn,
+[data-theme="light"] .vault-cat-pick-btn {
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #475569 !important;
+  transition: all var(--transition-fast);
+}
+
+[data-theme="light"] .dates-cat-pick-btn:hover,
+[data-theme="light"] .vault-cat-pick-btn:hover {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .dates-cat-pick-btn.selected,
+[data-theme="light"] .vault-cat-pick-btn.selected {
+  font-weight: 600 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Category Selected State - Light Mode High Contrast */
+[data-theme="light"] .dates-cat-pick-btn.selected.cat-passport,
+[data-theme="light"] .vault-cat-pick-btn.selected.cat-login {
+  border-color: #0284c7 !important;
+  background-color: rgba(2, 132, 199, 0.12) !important;
+  color: #0369a1 !important;
+}
+
+[data-theme="light"] .dates-cat-pick-btn.selected.cat-license,
+[data-theme="light"] .vault-cat-pick-btn.selected.cat-api_key {
+  border-color: #9333ea !important;
+  background-color: rgba(147, 51, 234, 0.12) !important;
+  color: #7e22ce !important;
+}
+
+[data-theme="light"] .dates-cat-pick-btn.selected.cat-anniversary {
+  border-color: #e11d48 !important;
+  background-color: rgba(225, 29, 72, 0.12) !important;
+  color: #be123c !important;
+}
+
+[data-theme="light"] .dates-cat-pick-btn.selected.cat-birthday {
+  border-color: #db2777 !important;
+  background-color: rgba(219, 39, 119, 0.12) !important;
+  color: #be185d !important;
+}
+
+[data-theme="light"] .dates-cat-pick-btn.selected.cat-warranty,
+[data-theme="light"] .vault-cat-pick-btn.selected.cat-server {
+  border-color: #d97706 !important;
+  background-color: rgba(217, 119, 6, 0.12) !important;
+  color: #b45309 !important;
+}
+
+[data-theme="light"] .dates-cat-pick-btn.selected.cat-subscription,
+[data-theme="light"] .vault-cat-pick-btn.selected.cat-card {
+  border-color: #4f46e5 !important;
+  background-color: rgba(79, 70, 229, 0.12) !important;
+  color: #4338ca !important;
+}
+
+[data-theme="light"] .dates-cat-pick-btn.selected.cat-custom,
+[data-theme="light"] .vault-cat-pick-btn.selected.cat-note {
+  border-color: #059669 !important;
+  background-color: rgba(5, 150, 105, 0.12) !important;
+  color: #047857 !important;
+}
+
+[data-theme="light"] .vault-cat-pick-btn.selected.cat-other {
+  border-color: #475569 !important;
+  background-color: rgba(71, 85, 105, 0.12) !important;
+  color: #0f172a !important;
+}
+
+/* 6. Form Inputs, Selects, and Textareas */
+[data-theme="light"] .dates-form-input,
+[data-theme="light"] .dates-form-select,
+[data-theme="light"] .dates-form-textarea,
+[data-theme="light"] .vault-form-input,
+[data-theme="light"] .vault-form-textarea,
+[data-theme="light"] .form-textarea,
+[data-theme="light"] .form-input {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="light"] .dates-form-input:focus,
+[data-theme="light"] .dates-form-select:focus,
+[data-theme="light"] .dates-form-textarea:focus {
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.15) !important;
+}
+
+[data-theme="light"] .vault-form-input:focus,
+[data-theme="light"] .vault-form-textarea:focus {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15) !important;
+}
+
+[data-theme="light"] .dates-form-input::placeholder,
+[data-theme="light"] .dates-form-textarea::placeholder,
+[data-theme="light"] .vault-form-input::placeholder,
+[data-theme="light"] .vault-form-textarea::placeholder,
+[data-theme="light"] .form-textarea::placeholder,
+[data-theme="light"] .form-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+[data-theme="light"] input[type="date"],
+[data-theme="light"] input[type="datetime-local"],
+[data-theme="light"] input[type="time"] {
+  color-scheme: light !important;
+}
+
+[data-theme="light"] select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* 7. Modal Actions / Footers */
+[data-theme="light"] .dates-modal-actions,
+[data-theme="light"] .vault-modal-actions,
+[data-theme="light"] .reminder-modal-actions {
+  border-top: 1px solid rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] .dates-modal-actions .btn-secondary,
+[data-theme="light"] .vault-modal-actions .btn-secondary,
+[data-theme="light"] .reminder-modal-actions .btn-secondary {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+[data-theme="light"] .dates-modal-actions .btn-secondary:hover,
+[data-theme="light"] .vault-modal-actions .btn-secondary:hover,
+[data-theme="light"] .reminder-modal-actions .btn-secondary:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* 8. Vault Generator & Secret Specifics */
+[data-theme="light"] .vault-gen-display-box {
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="light"] .vault-gen-pwd-value {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .vault-gen-slider-label {
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .vault-gen-length-badge {
+  color: #6d28d9 !important;
+  background: rgba(109, 40, 217, 0.12) !important;
+}
+
+[data-theme="light"] .vault-gen-options-grid {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-theme="light"] .vault-copy-btn {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+[data-theme="light"] .vault-copy-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .vault-icon-action-btn {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .vault-icon-action-btn:hover {
+  color: #0f172a !important;
+  background: rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme="light"] .vault-inline-gen-btn {
+  color: #7c3aed !important;
+}
+
+[data-theme="light"] .vault-inline-gen-btn:hover {
+  color: #6d28d9 !important;
+}
+
+[data-theme="light"] .vault-input-eye-btn {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .vault-input-eye-btn:hover {
+  color: #0f172a !important;
+}
+
+/* 9. Note Color Selection Chips (Dark & Light Mode) */
+.note-color-chip {
+  padding: 0.38rem 0.8rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+/* Default / Dark Mode Color Chips */
+.note-color-chip-default {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+.note-color-chip-default.selected {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+.note-color-chip-indigo {
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: rgba(99, 102, 241, 0.08);
+  color: #a5b4fc;
+}
+.note-color-chip-indigo.selected {
+  background: rgba(79, 70, 229, 0.25);
+  border-color: #6366f1;
+  color: #ffffff;
+}
+.note-color-chip-emerald {
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.08);
+  color: #6ee7b7;
+}
+.note-color-chip-emerald.selected {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #10b981;
+  color: #ffffff;
+}
+.note-color-chip-amber {
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.08);
+  color: #fcd34d;
+}
+.note-color-chip-amber.selected {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: #f59e0b;
+  color: #ffffff;
+}
+.note-color-chip-rose {
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  background: rgba(244, 63, 94, 0.08);
+  color: #fda4af;
+}
+.note-color-chip-rose.selected {
+  background: rgba(244, 63, 94, 0.25);
+  border-color: #f43f5e;
+  color: #ffffff;
+}
+.note-color-chip-cyan {
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  background: rgba(6, 182, 212, 0.08);
+  color: #67e8f9;
+}
+.note-color-chip-cyan.selected {
+  background: rgba(6, 182, 212, 0.25);
+  border-color: #06b6d4;
+  color: #ffffff;
+}
+
+/* Light Mode Note Color Chips */
+[data-theme="light"] .note-color-chip {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .note-color-chip:hover {
+  filter: brightness(0.96);
+}
+
+/* Obsidian - Clear white text on dark badge in Light Mode */
+[data-theme="light"] .note-color-chip-default {
+  border: 1px solid #cbd5e1 !important;
+  background: #f8fafc !important;
+  color: #334155 !important;
+}
+[data-theme="light"] .note-color-chip-default.selected {
+  background: #0f172a !important;
+  border-color: #0f172a !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25) !important;
+}
+
+/* Indigo */
+[data-theme="light"] .note-color-chip-indigo {
+  border: 1px solid #c7d2fe !important;
+  background: #eef2ff !important;
+  color: #4338ca !important;
+}
+[data-theme="light"] .note-color-chip-indigo.selected {
+  background: #4f46e5 !important;
+  border-color: #4338ca !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35) !important;
+}
+
+/* Emerald */
+[data-theme="light"] .note-color-chip-emerald {
+  border: 1px solid #a7f3d0 !important;
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+}
+[data-theme="light"] .note-color-chip-emerald.selected {
+  background: #059669 !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.35) !important;
+}
+
+/* Amber */
+[data-theme="light"] .note-color-chip-amber {
+  border: 1px solid #fde68a !important;
+  background: #fffbeb !important;
+  color: #b45309 !important;
+}
+[data-theme="light"] .note-color-chip-amber.selected {
+  background: #d97706 !important;
+  border-color: #b45309 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35) !important;
+}
+
+/* Rose */
+[data-theme="light"] .note-color-chip-rose {
+  border: 1px solid #fecdd3 !important;
+  background: #fff1f2 !important;
+  color: #be123c !important;
+}
+[data-theme="light"] .note-color-chip-rose.selected {
+  background: #e11d48 !important;
+  border-color: #be123c !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.35) !important;
+}
+
+/* Cyan */
+[data-theme="light"] .note-color-chip-cyan {
+  border: 1px solid #a5f3fc !important;
+  background: #ecfeff !important;
+  color: #0e7490 !important;
+}
+[data-theme="light"] .note-color-chip-cyan.selected {
+  background: #0891b2 !important;
+  border-color: #0e7490 !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.35) !important;
+}
+
+/* 10. Note Cards Color Tints in Light Mode */
+[data-theme="light"] .note-card.note-color-indigo {
+  background: #f5f7ff !important;
+  border-color: #c7d2fe !important;
+}
+[data-theme="light"] .note-card.note-color-emerald {
+  background: #f0fdf4 !important;
+  border-color: #a7f3d0 !important;
+}
+[data-theme="light"] .note-card.note-color-amber {
+  background: #fffbeb !important;
+  border-color: #fde68a !important;
+}
+[data-theme="light"] .note-card.note-color-rose {
+  background: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+}
+[data-theme="light"] .note-card.note-color-cyan {
+  background: #f0fdfa !important;
+  border-color: #a5f3fc !important;
+}
+[data-theme="light"] .note-card.note-color-default {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.09) !important;
+}

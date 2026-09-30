@@ -80,7 +80,10 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             Encrypted logins, API keys, and sensitive credentials with zero-plaintext storage.
           </p>
           <div className="overview-card-footer">
-            <span>Open Vault</span>
+            <span>
+              <span className="desktop-text">Open Vault</span>
+              <span className="mobile-text">Open</span>
+            </span>
             <ArrowRight size={15} />
           </div>
         </div>
@@ -103,7 +106,10 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             Passports, driver licenses, renewals, and anniversaries with automated countdowns.
           </p>
           <div className="overview-card-footer">
-            <span>Track Milestones</span>
+            <span>
+              <span className="desktop-text">Track Milestones</span>
+              <span className="mobile-text">View</span>
+            </span>
             <ArrowRight size={15} />
           </div>
         </div>
@@ -121,12 +127,18 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             </div>
             <span className="overview-card-count">{remindersCount}</span>
           </div>
-          <h3 className="overview-card-title">Time-Sensitive Reminders</h3>
+          <h3 className="overview-card-title">
+            <span className="desktop-text">Time-Sensitive Reminders</span>
+            <span className="mobile-text">Reminders</span>
+          </h3>
           <p className="overview-card-desc">
             Stay on top of critical tasks with UTC normalized scheduling and snooze controls.
           </p>
           <div className="overview-card-footer">
-            <span>View Alerts</span>
+            <span>
+              <span className="desktop-text">View Alerts</span>
+              <span className="mobile-text">Alerts</span>
+            </span>
             <ArrowRight size={15} />
           </div>
         </div>
@@ -144,12 +156,18 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             </div>
             <span className="overview-card-count">{notesCount}</span>
           </div>
-          <h3 className="overview-card-title">Personal Notes</h3>
+          <h3 className="overview-card-title">
+            <span className="desktop-text">Personal Notes</span>
+            <span className="mobile-text">Notes</span>
+          </h3>
           <p className="overview-card-desc">
             Quick, distraction-free markdown notes, pinned thoughts, and color-coded lists.
           </p>
           <div className="overview-card-footer">
-            <span>Read Notes</span>
+            <span>
+              <span className="desktop-text">Read Notes</span>
+              <span className="mobile-text">Notes</span>
+            </span>
             <ArrowRight size={15} />
           </div>
         </div>
@@ -164,7 +182,7 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             </div>
             <div>
               <h3 style={{ fontSize: '1.05rem', margin: 0, fontWeight: 700 }}>Priority Status</h3>
-              <p style={{ margin: '0.15rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              <p className="priority-widget-desc" style={{ margin: '0.15rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                 Items that require your immediate attention
               </p>
             </div>
@@ -216,7 +234,7 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             </div>
             <div>
               <h4 style={{ margin: 0, fontSize: '0.95rem' }}>You're all caught up!</h4>
-              <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              <p className="priority-empty-desc" style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                 No overdue reminders or critical document expirations today.
               </p>
             </div>
@@ -233,7 +251,7 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             </div>
             <div>
               <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>Your Privacy is Guaranteed</h4>
-              <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              <p className="security-card-desc" style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                 RemiVault isolates every user's data with cryptographic encryption and strict ownership checks. Only you have access to your vault secrets.
               </p>
             </div>

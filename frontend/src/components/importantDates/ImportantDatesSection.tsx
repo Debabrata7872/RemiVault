@@ -623,7 +623,7 @@ export const ImportantDatesSection: React.FC = () => {
                       <button
                         type="button"
                         key={catKey}
-                        className={`dates-cat-pick-btn ${isSelected ? 'selected' : ''}`}
+                        className={`dates-cat-pick-btn cat-${catKey} ${isSelected ? 'selected' : ''}`}
                         style={{
                           borderColor: isSelected ? meta.color : undefined,
                           backgroundColor: isSelected ? meta.bg : undefined,
