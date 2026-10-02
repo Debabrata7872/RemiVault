@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { 
   getStoredToken, 
@@ -9,70 +9,207 @@ import {
   logoutApi,
   verifyEmailOtpRegisterApi,
   verifyEmailOtpResetApi,
-  firebaseLoginApi
+  firebaseLoginApi,
+  updateAvatarApi,
+  setSecurityPinApi,
+  verifySecurityPinApi
 } from '../services/api';
 import type { User, ApiError, RequestOptions } from '../services/api';
+import {
+  type DeviceProfile,
+  getDeviceProfiles,
+  saveDeviceProfile,
+  getActiveProfile,
+  setActiveProfileId,
+  setProfilePin,
+  verifyProfilePin,
+  getLockState,
+  lockDeviceSession,
+  unlockDeviceSession,
+  removeDeviceProfile
+} from '../services/deviceProfiles';
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   error: string | null;
+  // Multi-Profile & Lock Screen state
+  isLocked: boolean;
+  isPendingPinSetup: boolean;
+  activeProfile: DeviceProfile | null;
+  deviceProfiles: DeviceProfile[];
+  // Authentication actions
   login: (email: string, password: string, options?: RequestOptions) => Promise<void>;
   register: (name: string, email: string, password: string, confirmation: string, options?: RequestOptions) => Promise<void>;
   registerWithOtp: (name: string, email: string, password: string, confirmation: string, otp: string, options?: RequestOptions) => Promise<void>;
   resetPasswordWithOtp: (email: string, password: string, confirmation: string, otp: string, options?: RequestOptions) => Promise<void>;
-  loginWithFirebase: (idToken: string, email?: string | null, name?: string | null, phone?: string | null, options?: RequestOptions) => Promise<void>;
-  logout: () => Promise<void>;
+  loginWithFirebase: (idToken: string, email?: string | null, name?: string | null, phone?: string | null, photoUrl?: string | null, options?: RequestOptions) => Promise<void>;
+  logout: (removeFromDevice?: boolean) => Promise<void>;
   clearError: () => void;
+  // Profile Lock & Device Profile actions
+  unlockWithPin: (profileId: number, pin: string) => Promise<boolean>;
+  setupPin: (pin: string) => Promise<void>;
+  dismissPinSetup: () => void;
+  switchProfile: (profileId: number) => void;
+  lockApp: () => void;
+  removeProfile: (profileId: number) => void;
+  resetPinWithOtp: (profileId: number, newPin: string) => Promise<void>;
+  updateUserAvatar: (photoUrl: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [deviceProfiles, setDeviceProfiles] = useState<DeviceProfile[]>(() => getDeviceProfiles());
+  const [activeProfile, setActiveProfile] = useState<DeviceProfile | null>(() => getActiveProfile());
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(getStoredToken());
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Lock status: true if device profiles exist and lock state is locked
+  const [isLocked, setIsLocked] = useState<boolean>(() => {
+    const profiles = getDeviceProfiles();
+    if (profiles.length === 0) return false;
+    return getLockState() === 'locked';
+  });
+
+  const [isPendingPinSetup, setIsPendingPinSetup] = useState<boolean>(false);
+
   /**
-   * On Initial Mount:
-   * Verify if a previously saved token in localStorage is still valid with Laravel.
-   * If valid: populate the user state.
-   * If invalid/expired: purge token from storage.
+   * Sync and refresh device profiles state from LocalStorage
+   */
+  const refreshProfilesState = useCallback(() => {
+    const profiles = getDeviceProfiles();
+    setDeviceProfiles(profiles);
+    const active = getActiveProfile();
+    setActiveProfile(active);
+    return { profiles, active };
+  }, []);
+
+  /**
+   * On Mount: Initialize session from device profiles or legacy token
    */
   useEffect(() => {
-    const verifyToken = async () => {
-      const savedToken = getStoredToken();
-      if (!savedToken) {
-        setIsLoading(false);
-        return;
-      }
+    const initSession = async () => {
+      const { profiles, active } = refreshProfilesState();
 
-      try {
-        const response = await getMeApi();
-        setUser(response.user);
-        setToken(savedToken);
-      } catch {
-        // Token was revoked or expired
-        setStoredToken(null);
-        setToken(null);
-        setUser(null);
-      } finally {
+      if (profiles.length > 0 && active) {
+        // We have remembered accounts on this device!
+        setToken(active.token);
+        setStoredToken(active.token);
+        setUser({
+          id: active.id,
+          name: active.name,
+          email: active.email,
+          avatar_url: active.photoUrl,
+          created_at: active.createdAt || new Date().toISOString(),
+        });
+
+        const isDismissed = localStorage.getItem(`remivault_dismissed_pin_${active.id}`) === 'true';
+        if (!active.hasPin && !isDismissed) {
+          // Profile hasn't configured a PIN yet and hasn't dismissed -> prompt PIN setup
+          setIsPendingPinSetup(true);
+          setIsLocked(false);
+        } else if (getLockState() === 'locked' && active.hasPin) {
+          // Locked: require PIN
+          setIsLocked(true);
+        } else {
+          // Unlocked: ready to work
+          setIsLocked(false);
+        }
+
         setIsLoading(false);
+
+        // Quiet background verification with Laravel
+        try {
+          const res = await getMeApi();
+          setUser(res.user);
+          if (active.token) {
+            saveDeviceProfile(res.user, active.token, res.user.avatar_url || active.photoUrl);
+            const { active: refreshedActive, profiles: refreshedProfiles } = refreshProfilesState();
+            setActiveProfile(refreshedActive);
+            setDeviceProfiles(refreshedProfiles);
+            // If backend reports PIN is active, ensure setup modal is dismissed
+            if (refreshedActive?.hasPin) {
+              setIsPendingPinSetup(false);
+            }
+          }
+        } catch (err: unknown) {
+          const apiErr = err as ApiError;
+          // If token was explicitly revoked on backend (401), mark session as expired
+          if (apiErr.status === 401) {
+            // Keep profile for quick relogin, but lock session
+            lockDeviceSession();
+            setIsLocked(true);
+          }
+        }
+      } else {
+        // No remembered profiles: check legacy token fallback
+        const savedToken = getStoredToken();
+        if (!savedToken) {
+          setIsLoading(false);
+          return;
+        }
+
+        try {
+          const response = await getMeApi();
+          const prof = saveDeviceProfile(response.user, savedToken, response.user.avatar_url);
+          setUser(response.user);
+          setToken(savedToken);
+          const { profiles: legacyProfiles, active: legacyActive } = refreshProfilesState();
+          setDeviceProfiles(legacyProfiles);
+          setActiveProfile(legacyActive || prof);
+          const isDismissed = localStorage.getItem(`remivault_dismissed_pin_${response.user.id}`) === 'true';
+          if (!prof.hasPin && !isDismissed) {
+            setIsPendingPinSetup(true);
+          }
+        } catch {
+          setStoredToken(null);
+          setToken(null);
+          setUser(null);
+        } finally {
+          setIsLoading(false);
+        }
       }
     };
 
-    verifyToken();
-  }, []);
+    initSession();
+  }, [refreshProfilesState]);
+
+  /**
+   * Internal helper after successful login/registration
+   */
+  const handleAuthSuccess = (authenticatedUser: User, authToken: string, photoUrl?: string | null) => {
+    const effectivePhoto = photoUrl || authenticatedUser.avatar_url;
+    const profile = saveDeviceProfile(authenticatedUser, authToken, effectivePhoto);
+    setStoredToken(authToken);
+    setToken(authToken);
+    setUser({
+      ...authenticatedUser,
+      avatar_url: effectivePhoto || profile.photoUrl,
+    });
+
+    const { active, profiles } = refreshProfilesState();
+    setActiveProfile(active || profile);
+    setDeviceProfiles(profiles);
+
+    const isDismissed = localStorage.getItem(`remivault_dismissed_pin_${profile.id}`) === 'true';
+    if (!profile.hasPin && !isDismissed) {
+      setIsPendingPinSetup(true);
+      setIsLocked(false);
+    } else {
+      unlockDeviceSession(profile.id);
+      setIsLocked(false);
+    }
+  };
 
   const login = async (email: string, password: string, options?: RequestOptions): Promise<void> => {
     setError(null);
     try {
       const response = await loginApi({ email, password }, options);
-      setStoredToken(response.token);
-      setToken(response.token);
-      setUser(response.user);
+      handleAuthSuccess(response.user, response.token, response.user.avatar_url);
     } catch (err: unknown) {
       const apiErr = err as ApiError;
       if (!apiErr.isAborted) {
@@ -98,9 +235,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password,
         password_confirmation: confirmation,
       }, options);
-      setStoredToken(response.token);
-      setToken(response.token);
-      setUser(response.user);
+      handleAuthSuccess(response.user, response.token, response.user.avatar_url);
     } catch (err: unknown) {
       const apiErr = err as ApiError;
       if (!apiErr.isAborted) {
@@ -129,9 +264,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password_confirmation: confirmation,
         otp,
       }, options);
-      setStoredToken(response.token);
-      setToken(response.token);
-      setUser(response.user);
+      handleAuthSuccess(response.user, response.token, response.user.avatar_url);
     } catch (err: unknown) {
       const apiErr = err as ApiError;
       if (!apiErr.isAborted) {
@@ -158,9 +291,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password_confirmation: confirmation,
         otp,
       }, options);
-      setStoredToken(response.token);
-      setToken(response.token);
-      setUser(response.user);
+      handleAuthSuccess(response.user, response.token, response.user.avatar_url);
     } catch (err: unknown) {
       const apiErr = err as ApiError;
       if (!apiErr.isAborted) {
@@ -176,14 +307,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     email?: string | null,
     name?: string | null,
     phone?: string | null,
+    photoUrl?: string | null,
     options?: RequestOptions
   ): Promise<void> => {
     setError(null);
     try {
-      const response = await firebaseLoginApi({ idToken, email, name, phone }, options);
-      setStoredToken(response.token);
-      setToken(response.token);
-      setUser(response.user);
+      const response = await firebaseLoginApi({ idToken, email, name, phone, photo_url: photoUrl }, options);
+      handleAuthSuccess(response.user, response.token, photoUrl || response.user.avatar_url);
     } catch (err: unknown) {
       const apiErr = err as ApiError;
       if (!apiErr.isAborted) {
@@ -194,17 +324,249 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const logout = async (): Promise<void> => {
+  const updateUserAvatar = async (photoUrl: string): Promise<void> => {
     try {
-      if (token) {
+      const res = await updateAvatarApi(photoUrl);
+      if (token && res.user) {
+        saveDeviceProfile(res.user, token, photoUrl);
+      }
+      setUser((prev) => prev ? { ...prev, avatar_url: photoUrl } : null);
+      const { active } = refreshProfilesState();
+      setActiveProfile(active);
+    } catch (err: unknown) {
+      const apiErr = err as ApiError;
+      throw apiErr;
+    }
+  };
+
+  /**
+   * Unlock account using Profile PIN
+   * Checks local device hash first; if missing or outdated, verifies against backend account PIN.
+   */
+  const unlockWithPin = async (profileId: number, pin: string): Promise<boolean> => {
+    const cleanPin = pin.trim();
+    const profiles = getDeviceProfiles();
+    const profile = profiles.find((p) => 
+      String(p.id) === String(profileId) || 
+      (typeof profileId === 'string' && p.email?.toLowerCase() === (profileId as string).toLowerCase())
+    );
+
+    // 1. Try instant local verification (fast, works offline)
+    const localValid = profile ? await verifyProfilePin(profile.id, cleanPin) : await verifyProfilePin(profileId, cleanPin);
+    if (localValid) {
+      const resolvedProfile = profile || profiles.find((p) => String(p.id) === String(profileId)) || profiles[0];
+      if (resolvedProfile && resolvedProfile.token) {
+        setStoredToken(resolvedProfile.token);
+        setSecurityPinApi(cleanPin).catch((err) => {
+          console.warn('Auto-sync existing PIN to backend notice:', err);
+        });
+      }
+
+      unlockDeviceSession(resolvedProfile?.id ?? profileId);
+      const { active } = refreshProfilesState();
+
+      if (active) {
+        setUser({
+          id: active.id,
+          name: active.name,
+          email: active.email,
+          avatar_url: active.photoUrl,
+          has_pin: true,
+          created_at: active.createdAt || new Date().toISOString(),
+        });
+        setToken(active.token);
+        setStoredToken(active.token);
+      }
+
+      setIsLocked(false);
+      return true;
+    }
+
+    // 2. Cross-device backend verification fallback (e.g. user on phone verifying PIN originally created on Desktop, or updated PIN on another device)
+    const targetProfile = profile || profiles.find((p) => String(p.id) === String(profileId)) || profiles[0];
+    if (targetProfile && targetProfile.token) {
+      try {
+        setStoredToken(targetProfile.token);
+        const res = await verifySecurityPinApi(cleanPin);
+        if (res.valid) {
+          // Success! Save PIN locally on this device so future unlocks are offline & instantaneous
+          await setProfilePin(targetProfile.id, cleanPin);
+          unlockDeviceSession(targetProfile.id);
+          const { active } = refreshProfilesState();
+
+          if (active) {
+            setUser({
+              id: active.id,
+              name: active.name,
+              email: active.email,
+              avatar_url: active.photoUrl,
+              has_pin: true,
+              created_at: active.createdAt || new Date().toISOString(),
+            });
+            setToken(active.token);
+            setStoredToken(active.token);
+          }
+
+          setIsLocked(false);
+          return true;
+        }
+      } catch (err) {
+        console.warn('Backend PIN verification check error:', err);
+      }
+    }
+
+    return false;
+  };
+
+  /**
+   * Save initial or updated PIN for active profile (syncs to backend and caches locally)
+   */
+  const setupPin = async (pin: string): Promise<void> => {
+    const cleanPin = pin.trim();
+    if (!activeProfile) return;
+    
+    // Sync to backend account in database
+    try {
+      if (activeProfile.token) {
+        setStoredToken(activeProfile.token);
+      }
+      await setSecurityPinApi(cleanPin);
+    } catch (err) {
+      console.warn('Backend PIN sync notice:', err);
+    }
+
+    // Cache on local device profile
+    await setProfilePin(activeProfile.id, cleanPin);
+    localStorage.setItem(`remivault_dismissed_pin_${activeProfile.id}`, 'true');
+    unlockDeviceSession(activeProfile.id);
+    refreshProfilesState();
+    setIsPendingPinSetup(false);
+    setIsLocked(false);
+  };
+
+  const dismissPinSetup = () => {
+    if (activeProfile) {
+      localStorage.setItem(`remivault_dismissed_pin_${activeProfile.id}`, 'true');
+    }
+    setIsPendingPinSetup(false);
+  };
+
+  /**
+   * Switch to a different profile in the lock screen
+   */
+  const switchProfile = (profileId: number) => {
+    setActiveProfileId(profileId);
+    const { active, profiles } = refreshProfilesState();
+    if (active) {
+      setToken(active.token);
+      setStoredToken(active.token);
+      setUser({
+        id: active.id,
+        name: active.name,
+        email: active.email,
+        avatar_url: active.photoUrl,
+        created_at: active.createdAt || new Date().toISOString(),
+      });
+      setActiveProfile(active);
+    }
+    setDeviceProfiles(profiles);
+  };
+
+  /**
+   * Lock the current device session (presents ProfileLockScreen)
+   */
+  const lockApp = () => {
+    lockDeviceSession();
+    setIsLocked(true);
+  };
+
+  /**
+   * Remove a profile from this device
+   */
+  const removeProfile = (profileId: number) => {
+    removeDeviceProfile(profileId);
+    const { profiles, active } = refreshProfilesState();
+    setDeviceProfiles(profiles);
+
+    if (profiles.length === 0) {
+      setUser(null);
+      setToken(null);
+      setActiveProfile(null);
+      setIsLocked(false);
+    } else if (active) {
+      setUser({
+        id: active.id,
+        name: active.name,
+        email: active.email,
+        avatar_url: active.photoUrl,
+        created_at: active.createdAt || new Date().toISOString(),
+      });
+      setToken(active.token);
+      setStoredToken(active.token);
+      setActiveProfile(active);
+      setIsLocked(true);
+    }
+  };
+
+  /**
+   * Reset profile PIN via Email OTP
+   */
+  const resetPinWithOtp = async (profileId: number, newPin: string): Promise<void> => {
+    const cleanPin = newPin.trim();
+    const profiles = getDeviceProfiles();
+    const profile = profiles.find((p) => String(p.id) === String(profileId)) || profiles[0];
+
+    // 1. Sync to backend database if token is available
+    if (profile && profile.token) {
+      try {
+        setStoredToken(profile.token);
+        await setSecurityPinApi(cleanPin);
+      } catch (err) {
+        console.warn('Backend PIN sync on OTP reset notice:', err);
+      }
+    }
+
+    // 2. Cache on local device profile
+    const targetId = profile ? profile.id : profileId;
+    await setProfilePin(targetId, cleanPin);
+    unlockDeviceSession(targetId);
+    const { active, profiles: refreshedProfiles } = refreshProfilesState();
+    if (active) {
+      setUser({
+        id: active.id,
+        name: active.name,
+        email: active.email,
+        avatar_url: active.photoUrl,
+        has_pin: true,
+        created_at: active.createdAt || new Date().toISOString(),
+      });
+      setToken(active.token);
+      setStoredToken(active.token);
+      setActiveProfile(active);
+    }
+    setDeviceProfiles(refreshedProfiles);
+    setIsLocked(false);
+  };
+
+  /**
+   * Logout handler:
+   * If removeFromDevice is true, purges this profile from device LocalStorage and revokes on backend.
+   * If removeFromDevice is false, locks the profile on this device so the user can easily unlock with PIN.
+   */
+  const logout = async (removeFromDevice = false): Promise<void> => {
+    try {
+      if (token && removeFromDevice) {
         await logoutApi();
       }
     } catch {
-      // Even if network call fails, always clear local state
+      // Quiet network catch
     } finally {
-      setStoredToken(null);
-      setToken(null);
-      setUser(null);
+      if (removeFromDevice && activeProfile) {
+        removeProfile(activeProfile.id);
+      } else {
+        // Lock the device session (keeps credentials saved for PIN unlock)
+        lockApp();
+      }
       setError(null);
     }
   };
@@ -218,6 +580,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         token,
         isLoading,
         error,
+        isLocked,
+        isPendingPinSetup,
+        activeProfile,
+        deviceProfiles,
         login,
         register,
         registerWithOtp,
@@ -225,6 +591,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loginWithFirebase,
         logout,
         clearError,
+        unlockWithPin,
+        setupPin,
+        dismissPinSetup,
+        switchProfile,
+        lockApp,
+        removeProfile,
+        resetPinWithOtp,
+        updateUserAvatar,
       }}
     >
       {children}

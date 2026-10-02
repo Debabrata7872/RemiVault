@@ -242,11 +242,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         return;
       }
 
+      const photoUrl = result.user.photoURL;
+
       await loginWithFirebase(
         idToken, 
         result.user.email, 
         result.user.displayName, 
         result.user.phoneNumber,
+        photoUrl,
         { signal: controller.signal }
       );
 
@@ -454,6 +457,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             null, 
             name.trim(), 
             cleanInput,
+            null,
             { signal: controller.signal }
           );
         }

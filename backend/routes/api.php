@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\FeedbackController;
 use App\Http\Controllers\Api\NoteController;
 use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\ImportantDateController;
@@ -58,8 +59,19 @@ Route::prefix('auth')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/change-password', [AuthController::class, 'changePassword'])
+            ->middleware('throttle:6,1');
+        Route::post('/update-avatar', [AuthController::class, 'updateAvatar']);
+        Route::post('/security-pin', [AuthController::class, 'setSecurityPin'])
+            ->middleware('throttle:10,1');
+        Route::post('/security-pin/verify', [AuthController::class, 'verifySecurityPin'])
+            ->middleware('throttle:15,1');
     });
 });
+
+// User Feedback & Review (Support / Suggestions / Bug Reports)
+Route::post('/feedback', [FeedbackController::class, 'store'])
+    ->middleware('throttle:10,1');
 
 /**
  * User-Scoped Data Resources (Protected by Sanctum Token)

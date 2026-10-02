@@ -32,12 +32,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Account created successfully.',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'created_at' => $user->created_at,
-            ],
+            'user' => $this->formatUser($user),
             'token' => $token,
         ], 201);
     }
@@ -71,12 +66,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Login successful.',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'created_at' => $user->created_at,
-            ],
+            'user' => $this->formatUser($user),
             'token' => $token,
         ]);
     }
@@ -134,12 +124,7 @@ class AuthController extends Controller
         $user = $request->user();
 
         return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'created_at' => $user->created_at,
-            ],
+            'user' => $this->formatUser($user),
         ]);
     }
 
@@ -155,6 +140,115 @@ class AuthController extends Controller
              'message' => 'Successfully logged out.',
          ]);
      }
+
+    /**
+     * Change account password for authenticated user.
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($validated['current_password'], $user->password)) {
+            return response()->json([
+                'message' => 'Your current password is incorrect.',
+                'errors' => [
+                    'current_password' => ['The provided current password does not match our records.'],
+                ],
+            ], 422);
+        }
+
+        $user->password = $validated['password'];
+        $user->save();
+
+        return response()->json([
+            'message' => 'Password updated successfully.',
+        ]);
+    }
+
+    /**
+     * Update profile avatar URL for the authenticated user.
+     */
+    public function updateAvatar(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'avatar_url' => 'required|url|max:1024',
+        ]);
+
+        $user = $request->user();
+        $user->avatar_url = $validated['avatar_url'];
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profile picture updated successfully.',
+            'avatar_url' => $user->avatar_url,
+            'user' => $this->formatUser($user),
+        ]);
+    }
+
+    /**
+     * Set or update the user's 4-digit security PIN.
+     */
+    public function setSecurityPin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'pin' => 'required|string|regex:/^\d{4}$/',
+        ]);
+
+        $user = $request->user();
+        $user->security_pin = Hash::make($validated['pin']);
+        $user->save();
+
+        return response()->json([
+            'message' => '4-Digit Profile PIN updated successfully.',
+            'has_pin' => true,
+            'user' => $this->formatUser($user),
+        ]);
+    }
+
+    /**
+     * Verify the user's 4-digit security PIN.
+     */
+    public function verifySecurityPin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'pin' => 'required|string|regex:/^\d{4}$/',
+        ]);
+
+        $user = $request->user();
+
+        if (empty($user->security_pin) || !Hash::check($validated['pin'], $user->security_pin)) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Incorrect PIN. Please try again.',
+            ], 422);
+        }
+
+        return response()->json([
+            'valid' => true,
+            'message' => 'PIN verified successfully.',
+            'user' => $this->formatUser($user),
+        ]);
+    }
+
+    /**
+     * Helper to format user payload consistently across all auth endpoints.
+     */
+    private function formatUser(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'avatar_url' => $user->avatar_url,
+            'has_pin' => !empty($user->security_pin),
+            'created_at' => $user->created_at,
+        ];
+    }
 
     /**
      * Send a 6-digit OTP code to the user's email address for registration or password reset.
@@ -291,12 +385,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Email verified and account registered successfully.',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'created_at' => $user->created_at,
-            ],
+            'user' => $this->formatUser($user),
             'token' => $token,
         ], 201);
     }
@@ -352,12 +441,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Password reset successfully. You are now logged in.',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'created_at' => $user->created_at,
-            ],
+            'user' => $this->formatUser($user),
             'token' => $token,
         ]);
     }
@@ -372,10 +456,12 @@ class AuthController extends Controller
             'email' => 'nullable|email',
             'name' => 'nullable|string',
             'phone' => 'nullable|string',
+            'photo_url' => 'nullable|string|max:1024',
         ]);
 
         $idToken = $validated['idToken'];
         $firebaseApiKey = env('FIREBASE_API_KEY', 'AIzaSyBgc2Dap9csYQ0foT_1L0fGQgDO4GiCBZc');
+        $verifiedPhotoUrl = $validated['photo_url'] ?? null;
 
         // Verify Firebase ID Token using Google Identity Toolkit REST API
         try {
@@ -399,11 +485,13 @@ class AuthController extends Controller
                 $googleData = $googleCheck->json();
                 $verifiedEmail = $googleData['email'] ?? null;
                 $verifiedName = $googleData['name'] ?? null;
+                $verifiedPhotoUrl = $verifiedPhotoUrl ?: ($googleData['picture'] ?? null);
             } else {
                 $firebaseUser = $response->json('users')[0];
                 $verifiedEmail = $firebaseUser['email'] ?? null;
                 $verifiedName = $firebaseUser['displayName'] ?? null;
                 $verifiedPhone = $firebaseUser['phoneNumber'] ?? null;
+                $verifiedPhotoUrl = $verifiedPhotoUrl ?: ($firebaseUser['photoUrl'] ?? null);
 
                 // If phone login without email, generate a deterministic synthetic email
                 if (!$verifiedEmail && !empty($verifiedPhone)) {
@@ -432,24 +520,30 @@ class AuthController extends Controller
             $user = User::create([
                 'name' => $verifiedName ?: ($validated['name'] ?? 'Verified User'),
                 'email' => $verifiedEmail,
+                'avatar_url' => $verifiedPhotoUrl,
                 'password' => \Illuminate\Support\Str::random(32),
                 'email_verified_at' => now(),
             ]);
-        } else if (!$user->email_verified_at) {
-            $user->email_verified_at = now();
-            $user->save();
+        } else {
+            $updated = false;
+            if (!$user->email_verified_at) {
+                $user->email_verified_at = now();
+                $updated = true;
+            }
+            if ($verifiedPhotoUrl && $user->avatar_url !== $verifiedPhotoUrl) {
+                $user->avatar_url = $verifiedPhotoUrl;
+                $updated = true;
+            }
+            if ($updated) {
+                $user->save();
+            }
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'Authenticated successfully via Firebase.',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'created_at' => $user->created_at,
-            ],
+            'user' => $this->formatUser($user),
             'token' => $token,
         ]);
     }

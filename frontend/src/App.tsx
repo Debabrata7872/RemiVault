@@ -7,20 +7,25 @@ import {
   FileText, 
   KeyRound,
   LogOut,
-  UserCheck,
   LayoutDashboard,
   Terminal,
   ArrowRight,
   Lock,
   Sparkles,
-  Settings
+  Settings,
+  Trash2,
+  X,
+  ChevronRight
 } from 'lucide-react';
 import { checkBackendHealth, getStoredToken } from './services/api';
 import type { HealthResponse } from './services/api';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthModal } from './components/auth/AuthModal';
+import { SetProfilePinModal } from './components/auth/SetProfilePinModal';
+import { ProfileLockScreen } from './components/auth/ProfileLockScreen';
 import { SettingsModal } from './components/settings/SettingsModal';
+import { UserAvatar } from './components/common/UserAvatar';
 import { NotesSection } from './components/notes/NotesSection';
 import { RemindersSection } from './components/reminders/RemindersSection';
 import { ImportantDatesSection } from './components/importantDates/ImportantDatesSection';
@@ -36,7 +41,21 @@ import './App.css';
 type WorkspaceTab = 'overview' | 'vault' | 'dates' | 'reminders' | 'notes';
 
 const RemiVaultApp: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { 
+    user, 
+    logout,
+    isLocked,
+    isPendingPinSetup,
+    activeProfile,
+    deviceProfiles,
+    unlockWithPin,
+    setupPin,
+    dismissPinSetup,
+    switchProfile,
+    lockApp,
+    removeProfile,
+    resetPinWithOtp
+  } = useAuth();
   
   // Health & Diagnostics state (Kept for Admin diagnostics modal)
   const [health, setHealth] = useState<HealthResponse | null>(null);
@@ -48,6 +67,9 @@ const RemiVaultApp: React.FC = () => {
   // Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+
+  // Sign out confirmation sheet/modal
+  const [isLogoutPromptOpen, setIsLogoutPromptOpen] = useState<boolean>(false);
 
   // Settings Modal State (Accessible after sign-in)
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
@@ -136,7 +158,7 @@ const RemiVaultApp: React.FC = () => {
   return (
     <div className="app-container">
       {/* Top Navigation */}
-      <nav className="navbar">
+      <nav className={`navbar ${isLocked ? 'navbar-locked' : ''}`}>
         <div className="navbar-brand-row">
           <div className="brand" onClick={() => setWorkspaceTab('overview')} style={{ cursor: 'pointer' }}>
             <div className="brand-icon">
@@ -153,17 +175,34 @@ const RemiVaultApp: React.FC = () => {
         </div>
 
         <div className="navbar-actions">
-          {user ? (
+          {user && !isLocked ? (
             <div className="navbar-user-group">
               <button 
                 type="button"
                 className="badge badge-primary user-nav-badge"
                 onClick={() => setIsSettingsOpen(true)}
                 title="Account Settings & Preferences"
-                style={{ cursor: 'pointer', border: 'none' }}
+                style={{ cursor: 'pointer', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
               >
-                <UserCheck size={14} />
+                <UserAvatar
+                  size={20}
+                  name={user.name}
+                  email={user.email}
+                  photoUrl={activeProfile?.photoUrl || user.avatar_url}
+                  style={{ borderRadius: '50%', flexShrink: 0 }}
+                  fontSize="0.65rem"
+                />
                 <span className="user-nav-name">{user.name}</span>
+              </button>
+              <button 
+                type="button"
+                className="btn btn-secondary nav-lock-btn" 
+                onClick={lockApp}
+                title="Lock Vault (Quick PIN Access)"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <Lock size={14} />
+                <span>Lock</span>
               </button>
               <button 
                 className="btn btn-secondary nav-settings-btn" 
@@ -175,14 +214,14 @@ const RemiVaultApp: React.FC = () => {
               </button>
               <button 
                 className="btn btn-secondary nav-logout-btn" 
-                onClick={logout}
-                title="Sign Out"
+                onClick={() => setIsLogoutPromptOpen(true)}
+                title="Sign Out or Switch Account"
               >
                 <LogOut size={14} />
                 <span>Logout</span>
               </button>
             </div>
-          ) : (
+          ) : !isLocked ? (
             <div className="navbar-auth-group">
               <button 
                 className="btn btn-secondary nav-auth-btn" 
@@ -197,14 +236,38 @@ const RemiVaultApp: React.FC = () => {
                 Create Account
               </button>
             </div>
+          ) : (
+            <div className="navbar-auth-group">
+              <button
+                className="btn btn-secondary nav-auth-btn nav-auth-locked-btn"
+                onClick={() => openAuth('login')}
+                title="Sign in with another account"
+              >
+                <span className="nav-btn-text-full">Sign In Another Account</span>
+                <span className="nav-btn-text-short">Switch Account</span>
+              </button>
+            </div>
           )}
         </div>
       </nav>
 
       {/* =========================================================================
-          LOGGED IN USER EXPERIENCE
+          VIEW SWITCHER:
+          1. If isLocked && deviceProfiles.length > 0 => ProfileLockScreen
+          2. If user => Logged In User Workspace
+          3. If !user => Public Landing Page
           ========================================================================= */}
-      {user ? (
+      {isLocked && deviceProfiles.length > 0 ? (
+        <ProfileLockScreen
+          profiles={deviceProfiles}
+          activeProfile={activeProfile}
+          onUnlockWithPin={unlockWithPin}
+          onSwitchProfile={switchProfile}
+          onAddNewAccount={() => openAuth('login')}
+          onRemoveProfile={removeProfile}
+          onResetPinWithOtp={resetPinWithOtp}
+        />
+      ) : user ? (
         <main className="user-workspace-main">
           {/* Workspace Module Navigation */}
           <div className="workspace-tabs-container">
@@ -442,11 +505,142 @@ const RemiVaultApp: React.FC = () => {
         initialMode={authModalMode}
       />
 
-      {/* Settings Modal (Theme preferences & account info) */}
+      {/* Settings Modal (Theme preferences, PIN/Password & Help) */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        vaultCount={vaultCount}
+        datesCount={datesCount}
+        remindersCount={remindersCount}
+        notesCount={notesCount}
       />
+
+      {/* Set Profile PIN Modal (Prompted after login if PIN not yet set) */}
+      <SetProfilePinModal
+        isOpen={isPendingPinSetup}
+        profile={activeProfile}
+        onSavePin={setupPin}
+        onSkip={dismissPinSetup}
+      />
+
+      {/* Logout / Lock Profile Confirmation Modal */}
+      {isLogoutPromptOpen && (
+        <div className="modal-backdrop session-modal-backdrop" onClick={() => setIsLogoutPromptOpen(false)} style={{ zIndex: 1100 }}>
+          <div 
+            className="modal-content session-modal-sheet" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Sheet Top Header */}
+            <div className="session-sheet-header">
+              <div className="session-sheet-brand">
+                <Shield size={15} className="session-sheet-shield" />
+                <span>Security &amp; Session</span>
+              </div>
+              <button 
+                type="button" 
+                className="session-sheet-close"
+                onClick={() => setIsLogoutPromptOpen(false)}
+                aria-label="Close"
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* User Identity Capsule */}
+            {user && (
+              <div className="session-user-capsule">
+                <div className="session-avatar-wrap">
+                  <UserAvatar
+                    size={46}
+                    name={user.name}
+                    email={user.email}
+                    photoUrl={activeProfile?.photoUrl || user.avatar_url}
+                    bgColor={activeProfile?.avatarBg || 'var(--primary-gradient)'}
+                    className="session-avatar"
+                  />
+                  <span className="session-status-dot" title="Active Protected Session" />
+                </div>
+                <div className="session-user-info">
+                  <div className="session-user-name-row">
+                    <span className="session-user-name">{user.name}</span>
+                    <span className="session-user-badge">Active</span>
+                  </div>
+                  <span className="session-user-email">{user.email}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Prompt Heading */}
+            <div className="session-prompt-text">
+              <h3 className="session-prompt-title">Sign Out or Lock Profile?</h3>
+              <p className="session-prompt-subtitle">
+                Choose how you want to manage this encrypted profile on this device.
+              </p>
+            </div>
+
+            {/* Interactive Choice Cards */}
+            <div className="session-options-list">
+              {/* Option 1: Lock Profile (Recommended) */}
+              <button
+                type="button"
+                className="session-option-card recommend"
+                onClick={() => {
+                  setIsLogoutPromptOpen(false);
+                  logout(false);
+                }}
+              >
+                <div className="session-option-icon lock-icon-wrap">
+                  <Lock size={19} />
+                </div>
+                <div className="session-option-body">
+                  <div className="session-option-title-row">
+                    <span className="session-option-title">Lock Profile</span>
+                    <span className="session-recommend-pill">✦ Quick Access</span>
+                  </div>
+                  <p className="session-option-desc">
+                    Keeps data encrypted on this browser. Quickly unlock anytime with your 4-digit PIN.
+                  </p>
+                </div>
+                <ChevronRight size={18} className="session-option-arrow" />
+              </button>
+
+              {/* Option 2: Sign Out & Remove Account */}
+              <button
+                type="button"
+                className="session-option-card danger"
+                onClick={() => {
+                  setIsLogoutPromptOpen(false);
+                  logout(true);
+                }}
+              >
+                <div className="session-option-icon remove-icon-wrap">
+                  <Trash2 size={18} />
+                </div>
+                <div className="session-option-body">
+                  <div className="session-option-title-row">
+                    <span className="session-option-title">Sign Out &amp; Remove</span>
+                  </div>
+                  <p className="session-option-desc">
+                    Purges local session keys and cached profile from this browser. Full login required.
+                  </p>
+                </div>
+                <ChevronRight size={18} className="session-option-arrow" />
+              </button>
+            </div>
+
+            {/* Footer Dismiss Button */}
+            <div className="session-sheet-footer">
+              <button
+                type="button"
+                className="session-cancel-btn"
+                onClick={() => setIsLogoutPromptOpen(false)}
+              >
+                Keep Session Active
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Admin / System Diagnostics Modal (Kept safe for future Admin Panel) */}
       <AdminDiagnosticsModal

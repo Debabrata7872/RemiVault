@@ -20,7 +20,9 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'avatar_url',
         'password',
+        'security_pin',
     ];
 
     /**
@@ -30,8 +32,26 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'security_pin',
         'remember_token',
     ];
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'has_pin',
+    ];
+
+    /**
+     * Determine if the user has configured a 4-digit PIN.
+     */
+    public function getHasPinAttribute(): bool
+    {
+        return !empty($this->security_pin);
+    }
 
     /**
      * Get the attributes that should be cast.

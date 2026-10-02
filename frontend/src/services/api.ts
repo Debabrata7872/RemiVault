@@ -17,6 +17,8 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  avatar_url?: string | null;
+  has_pin?: boolean;
   created_at: string;
 }
 
@@ -386,8 +388,79 @@ export async function firebaseLoginApi(
     email?: string | null;
     name?: string | null;
     phone?: string | null;
+    photo_url?: string | null;
   },
   options?: RequestOptions
 ): Promise<AuthResponse> {
   return apiPost<AuthResponse>('/auth/firebase-login', data, options);
 }
+
+export async function changePasswordApi(
+  data: {
+    current_password: string;
+    password: string;
+    password_confirmation: string;
+  },
+  options?: RequestOptions
+): Promise<{ message: string }> {
+  return apiPost<{ message: string }>('/auth/change-password', data, options);
+}
+
+export interface SendFeedbackPayload {
+  type: 'improvement' | 'feature' | 'bug';
+  message: string;
+  name?: string;
+  email?: string;
+}
+
+export interface FeedbackResponse {
+  message: string;
+  feedback: {
+    id: number;
+    type: string;
+    submitted_at: string;
+    status: string;
+  };
+}
+
+export async function sendFeedbackApi(
+  data: SendFeedbackPayload,
+  options?: RequestOptions
+): Promise<FeedbackResponse> {
+  return apiPost<FeedbackResponse>('/feedback', data, options);
+}
+
+export async function updateAvatarApi(
+  avatarUrl: string,
+  options?: RequestOptions
+): Promise<{ message: string; avatar_url: string; user: User }> {
+  return apiPost<{ message: string; avatar_url: string; user: User }>('/auth/update-avatar', { avatar_url: avatarUrl }, options);
+}
+
+export async function setSecurityPinApi(
+  pin: string,
+  options?: RequestOptions
+): Promise<{ message: string; has_pin: boolean; user: User }> {
+  return apiPost<{ message: string; has_pin: boolean; user: User }>('/auth/security-pin', { pin }, options);
+}
+
+export async function verifySecurityPinApi(
+  pin: string,
+  options?: RequestOptions
+): Promise<{ valid: boolean; message: string; user?: User }> {
+  try {
+    return await apiPost<{ valid: boolean; message: string; user?: User }>(
+      '/auth/security-pin/verify',
+      { pin },
+      options
+    );
+  } catch (err: unknown) {
+    const apiErr = err as ApiError;
+    if (apiErr?.status === 422) {
+      return { valid: false, message: apiErr.message || 'Incorrect PIN.' };
+    }
+    throw err;
+  }
+}
+
+
