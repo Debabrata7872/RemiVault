@@ -197,14 +197,31 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'pin' => 'required|string|regex:/^\d{4}$/',
+            'current_pin' => 'nullable|string|regex:/^\d{4}$/',
         ]);
 
         $user = $request->user();
+
+        // If user already has a security PIN configured, verify current PIN first
+        if (!empty($user->security_pin)) {
+            if (empty($validated['current_pin'])) {
+                return response()->json([
+                    'message' => 'Current 4-digit PIN is required to update your PIN.',
+                ], 422);
+            }
+
+            if (!Hash::check($validated['current_pin'], $user->security_pin)) {
+                return response()->json([
+                    'message' => 'Current PIN is incorrect. Please try again.',
+                ], 422);
+            }
+        }
+
         $user->security_pin = Hash::make($validated['pin']);
         $user->save();
 
         return response()->json([
-            'message' => '4-Digit Profile PIN updated successfully.',
+            'message' => 'PIN updated successfully.',
             'has_pin' => true,
             'user' => $this->formatUser($user),
         ]);
@@ -246,6 +263,7 @@ class AuthController extends Controller
             'email' => $user->email,
             'avatar_url' => $user->avatar_url,
             'has_pin' => !empty($user->security_pin),
+            'pin_updated_at' => $user->updated_at ? $user->updated_at->toIso8601String() : null,
             'created_at' => $user->created_at,
         ];
     }

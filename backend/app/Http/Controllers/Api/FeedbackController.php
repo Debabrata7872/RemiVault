@@ -45,7 +45,7 @@ class FeedbackController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Thank you! Your feedback has been received and securely recorded.',
+            'message' => 'Thank you! We have received your feedback.',
             'feedback' => [
                 'id' => $feedback->id,
                 'type' => $feedback->type,

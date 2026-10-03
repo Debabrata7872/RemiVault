@@ -240,10 +240,10 @@ export const NotesSection: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <h2 className="section-title">Personal Notes</h2>
             <span className="badge badge-success" style={{ gap: '0.3rem' }}>
-              <ShieldCheck size={12} /> IDOR Protected
+              <ShieldCheck size={12} /> Private &amp; Protected
             </span>
           </div>
-          <p className="section-desc">Isolated to your user account via Eloquent relationship scoping and policies.</p>
+          <p className="section-desc">Keep your thoughts, ideas, and personal writings organized in complete privacy.</p>
         </div>
 
         <div className="notes-actions">

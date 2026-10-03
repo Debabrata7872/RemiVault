@@ -27,7 +27,8 @@ import {
   getLockState,
   lockDeviceSession,
   unlockDeviceSession,
-  removeDeviceProfile
+  removeDeviceProfile,
+  clearProfilePin
 } from '../services/deviceProfiles';
 
 interface AuthContextType {
@@ -50,7 +51,7 @@ interface AuthContextType {
   clearError: () => void;
   // Profile Lock & Device Profile actions
   unlockWithPin: (profileId: number, pin: string) => Promise<boolean>;
-  setupPin: (pin: string) => Promise<void>;
+  setupPin: (pin: string, currentPin?: string) => Promise<void>;
   dismissPinSetup: () => void;
   switchProfile: (profileId: number) => void;
   lockApp: () => void;
@@ -341,29 +342,76 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   /**
-   * Unlock account using Profile PIN
-   * Checks local device hash first; if missing or outdated, verifies against backend account PIN.
+   * Unlock account using Profile PIN.
+   * Priority: Always verifies against the authoritative database PIN first when online.
+   * This guarantees that a PIN changed on Desktop immediately invalidates the old PIN on Phone (and vice versa).
+   * Falls back to local cryptographic hash only when offline or server unreachable.
    */
   const unlockWithPin = async (profileId: number, pin: string): Promise<boolean> => {
     const cleanPin = pin.trim();
     const profiles = getDeviceProfiles();
-    const profile = profiles.find((p) => 
+    const targetProfile = profiles.find((p) => 
       String(p.id) === String(profileId) || 
       (typeof profileId === 'string' && p.email?.toLowerCase() === (profileId as string).toLowerCase())
-    );
+    ) || profiles[0];
 
-    // 1. Try instant local verification (fast, works offline)
-    const localValid = profile ? await verifyProfilePin(profile.id, cleanPin) : await verifyProfilePin(profileId, cleanPin);
-    if (localValid) {
-      const resolvedProfile = profile || profiles.find((p) => String(p.id) === String(profileId)) || profiles[0];
-      if (resolvedProfile && resolvedProfile.token) {
-        setStoredToken(resolvedProfile.token);
-        setSecurityPinApi(cleanPin).catch((err) => {
-          console.warn('Auto-sync existing PIN to backend notice:', err);
-        });
+    if (!targetProfile) {
+      return false;
+    }
+
+    // 1. Online Database Verification (Authoritative cross-device sync)
+    if (targetProfile.token && navigator.onLine) {
+      try {
+        setStoredToken(targetProfile.token);
+        const res = await verifySecurityPinApi(cleanPin, targetProfile.token);
+        if (res.valid) {
+          // Success! Save new PIN locally on this device so offline cache stays in sync
+          const pinUpdatedAt = res.user?.pin_updated_at || new Date().toISOString();
+          await setProfilePin(targetProfile.id, cleanPin, pinUpdatedAt);
+          unlockDeviceSession(targetProfile.id);
+          const { active } = refreshProfilesState();
+
+          if (active) {
+            setUser({
+              id: active.id,
+              name: active.name,
+              email: active.email,
+              avatar_url: active.photoUrl,
+              has_pin: true,
+              pin_updated_at: pinUpdatedAt,
+              created_at: active.createdAt || new Date().toISOString(),
+            });
+            setToken(active.token);
+            setStoredToken(active.token);
+          }
+
+          setIsLocked(false);
+          return true;
+        } else {
+          // The database explicitly rejected this PIN!
+          // Clear any stale local hash on this device so the old PIN can never unlock offline either
+          clearProfilePin(targetProfile.id);
+          return false;
+        }
+      } catch (err: unknown) {
+        const apiErr = err as ApiError;
+        if (apiErr?.status === 401) {
+          throw new Error('Your session on this device has expired. Please sign in with your password.');
+        }
+        if (apiErr?.status === 422) {
+          // 422 = Incorrect PIN returned by Laravel
+          clearProfilePin(targetProfile.id);
+          return false;
+        }
+        // If it's a network error (e.g. server unreachable), fall through to offline local verification
+        console.warn('Network error during online PIN verification, attempting offline fallback:', err);
       }
+    }
 
-      unlockDeviceSession(resolvedProfile?.id ?? profileId);
+    // 2. Offline Fallback: If offline or network unavailable, verify against local cryptographic hash
+    const localValid = await verifyProfilePin(targetProfile.id, cleanPin);
+    if (localValid) {
+      unlockDeviceSession(targetProfile.id);
       const { active } = refreshProfilesState();
 
       if (active) {
@@ -383,73 +431,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return true;
     }
 
-    // 2. Cross-device backend verification fallback (e.g. user on phone verifying PIN originally created on Desktop, or updated PIN on another device)
-    const targetProfile = profile || profiles.find((p) => String(p.id) === String(profileId)) || profiles[0];
-    if (targetProfile) {
-      if (!targetProfile.token) {
-        throw new Error('No saved session on this device. Please sign in with your password.');
-      }
-      try {
-        setStoredToken(targetProfile.token);
-        const res = await verifySecurityPinApi(cleanPin, targetProfile.token);
-        if (res.valid) {
-          // Success! Save PIN locally on this device so future unlocks are offline & instantaneous
-          await setProfilePin(targetProfile.id, cleanPin);
-          unlockDeviceSession(targetProfile.id);
-          const { active } = refreshProfilesState();
-
-          if (active) {
-            setUser({
-              id: active.id,
-              name: active.name,
-              email: active.email,
-              avatar_url: active.photoUrl,
-              has_pin: true,
-              created_at: active.createdAt || new Date().toISOString(),
-            });
-            setToken(active.token);
-            setStoredToken(active.token);
-          }
-
-          setIsLocked(false);
-          return true;
-        }
-      } catch (err: unknown) {
-        const apiErr = err as ApiError;
-        if (apiErr?.status === 401) {
-          throw new Error('Your session on this device has expired. Please sign in with your password.');
-        }
-        if (apiErr?.status === 422) {
-          return false;
-        }
-        throw new Error(apiErr?.message || 'Network error verifying PIN. Check your connection.');
-      }
-    }
-
     return false;
   };
 
   /**
-   * Save initial or updated PIN for active profile (syncs to backend and caches locally)
+   * Save initial or updated PIN for active profile (saves directly to database and caches locally)
    */
-  const setupPin = async (pin: string): Promise<void> => {
+  const setupPin = async (pin: string, currentPin?: string): Promise<void> => {
     const cleanPin = pin.trim();
-    if (!activeProfile) return;
+    if (!activeProfile) throw new Error('No active profile detected.');
     
-    // Sync to backend account in database
-    try {
-      if (activeProfile.token) {
-        setStoredToken(activeProfile.token);
-      }
-      await setSecurityPinApi(cleanPin);
-    } catch (err) {
-      console.warn('Backend PIN sync notice:', err);
+    // 1. Ensure token is set for API request
+    if (activeProfile.token) {
+      setStoredToken(activeProfile.token);
     }
 
-    // Cache on local device profile
-    await setProfilePin(activeProfile.id, cleanPin);
+    // 2. Save directly to database in backend via authenticated API
+    const res = await setSecurityPinApi(cleanPin, currentPin);
+
+    // 3. Cache updated PIN hash on local device profile for instantaneous local unlocks
+    const pinUpdatedAt = res.user?.pin_updated_at || new Date().toISOString();
+    await setProfilePin(activeProfile.id, cleanPin, pinUpdatedAt);
     localStorage.setItem(`remivault_dismissed_pin_${activeProfile.id}`, 'true');
     unlockDeviceSession(activeProfile.id);
+    
+    // 4. Update active user state
+    if (res.user) {
+      setUser({
+        ...res.user,
+        has_pin: true,
+      });
+    }
     refreshProfilesState();
     setIsPendingPinSetup(false);
     setIsLocked(false);

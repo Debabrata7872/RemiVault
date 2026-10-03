@@ -19,6 +19,7 @@ export interface DeviceProfile {
   pinHash?: string;
   salt?: string;
   hasPin: boolean;
+  pinUpdatedAt?: string | null;
   avatarBg: string;
   photoUrl?: string | null;
   lastActiveAt: string;
@@ -234,15 +235,23 @@ export function saveDeviceProfile(user: User, token: string, photoUrl?: string |
   if (existingIndex >= 0) {
     // Update existing profile (preserve PIN if previously configured or sync from backend)
     const existing = profiles[existingIndex];
+    // If backend reports a newer pin_updated_at than local cache, invalidate stale local pinHash/salt!
+    const isPinUpdatedRemotely = Boolean(
+      user.pin_updated_at && 
+      existing.pinUpdatedAt && 
+      user.pin_updated_at !== existing.pinUpdatedAt
+    );
+
     profile = {
       ...existing,
       id: user.id,
       name: user.name,
       email: user.email,
       token,
-      pinHash: existing.pinHash,
-      salt: existing.salt,
+      pinHash: isPinUpdatedRemotely ? undefined : existing.pinHash,
+      salt: isPinUpdatedRemotely ? undefined : existing.salt,
       hasPin: user.has_pin !== undefined ? (user.has_pin || existing.hasPin) : existing.hasPin,
+      pinUpdatedAt: user.pin_updated_at || existing.pinUpdatedAt,
       photoUrl: resolvedPhoto,
       lastActiveAt: now,
     };
@@ -334,7 +343,7 @@ export function getActiveProfile(): DeviceProfile | null {
 /**
  * Set or reset a profile's security PIN
  */
-export async function setProfilePin(profileId: number | string, pin: string): Promise<void> {
+export async function setProfilePin(profileId: number | string, pin: string, pinUpdatedAt?: string | null): Promise<void> {
   const cleanPin = pin.trim();
   if (!/^\d{4}$/.test(cleanPin)) {
     throw new Error('Profile PIN must be exactly 4 numeric digits.');
@@ -356,10 +365,29 @@ export async function setProfilePin(profileId: number | string, pin: string): Pr
     pinHash,
     salt,
     hasPin: true,
+    pinUpdatedAt: pinUpdatedAt || new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
   };
 
   localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+}
+
+/**
+ * Clear cached local PIN hash and salt for a profile (e.g. when database reports PIN changed or rejected)
+ */
+export function clearProfilePin(profileId: number | string): void {
+  const profiles = getDeviceProfiles();
+  const index = profiles.findIndex(
+    (p) => String(p.id) === String(profileId) || (typeof profileId === 'string' && p.email.toLowerCase() === profileId.toLowerCase())
+  );
+  if (index !== -1) {
+    profiles[index] = {
+      ...profiles[index],
+      pinHash: undefined,
+      salt: undefined,
+    };
+    localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+  }
 }
 
 /**

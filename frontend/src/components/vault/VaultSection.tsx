@@ -338,7 +338,7 @@ export const VaultSection: React.FC = () => {
           <div>
             <h2 className="vault-main-title">Password &amp; Credential Vault</h2>
             <p className="vault-main-subtitle">
-              Zero-plaintext storage with authenticated AES-256-GCM symmetric encryption.
+              Securely store and manage your passwords, logins, and accounts in complete privacy.
             </p>
           </div>
         </div>
@@ -535,7 +535,7 @@ export const VaultSection: React.FC = () => {
       {loading && entries.length === 0 ? (
         <div className="vault-empty-box">
           <RefreshCw size={28} className="spin" color="#a855f7" />
-          <p>Decrypting vault credentials...</p>
+          <p>Loading your saved passwords...</p>
         </div>
       ) : entries.length === 0 ? (
         <div className="vault-empty-box">
@@ -546,11 +546,11 @@ export const VaultSection: React.FC = () => {
           <p>
             {searchQuery || activeCategory !== 'all' || onlyFavorites
               ? 'No credentials match your active filters. Try clearing the search or category filters.'
-              : 'Safely store complex passwords, API tokens, credit cards, and SSH credentials with zero-plaintext encryption.'}
+              : 'Safely store your website passwords, credit cards, and account logins.'}
           </p>
           <button className="btn btn-primary vault-create-btn" onClick={openCreateModal} style={{ marginTop: '1rem' }}>
             <Plus size={16} />
-            <span>Store Your First Secret</span>
+            <span>Save Your First Password</span>
           </button>
         </div>
       ) : (
@@ -996,12 +996,12 @@ export const VaultSection: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <RefreshCw size={15} className="spin" />
-                      <span>Encrypting...</span>
+                      <span>Saving...</span>
                     </>
                   ) : (
                     <>
                       <Check size={16} />
-                      <span>{editingEntry ? 'Update Secret' : 'Encrypt & Store'}</span>
+                      <span>{editingEntry ? 'Update Password' : 'Save Password'}</span>
                     </>
                   )}
                 </button>

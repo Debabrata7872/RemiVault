@@ -19,6 +19,7 @@ export interface User {
   email: string;
   avatar_url?: string | null;
   has_pin?: boolean;
+  pin_updated_at?: string | null;
   created_at: string;
 }
 
@@ -439,9 +440,17 @@ export async function updateAvatarApi(
 
 export async function setSecurityPinApi(
   pin: string,
+  currentPin?: string,
   options?: RequestOptions
 ): Promise<{ message: string; has_pin: boolean; user: User }> {
-  return apiPost<{ message: string; has_pin: boolean; user: User }>('/auth/security-pin', { pin }, options);
+  return apiPost<{ message: string; has_pin: boolean; user: User }>(
+    '/auth/security-pin',
+    {
+      pin,
+      ...(currentPin ? { current_pin: currentPin } : {}),
+    },
+    options
+  );
 }
 
 export async function verifySecurityPinApi(

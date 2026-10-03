@@ -543,14 +543,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </h2>
               <p className="modal-subtitle">
                 {step === 'password'
-                  ? 'Create a strong password to encrypt and secure your vault.'
+                  ? 'Create a strong password to protect your account.'
                   : step === 'otp'
-                  ? 'Enter the 6-digit code to confirm your ownership.'
+                  ? 'Enter the 6-digit code sent to your email.'
                   : mode === 'login'
-                  ? 'Access your encrypted notes, reminders, and credentials.'
+                  ? 'Access your saved notes, reminders, and passwords.'
                   : mode === 'register'
-                  ? 'Start safeguarding your personal information securely.'
-                  : 'Verify your identity to reset your account password.'}
+                  ? 'Start organizing your personal information securely.'
+                  : 'Verify your email to reset your account password.'}
               </p>
             </div>
           </div>
@@ -1001,7 +1001,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Security Note Footer */}
         <div className="modal-footer-note">
           <Lock size={13} />
-          <span>Encrypted with Bcrypt, AES-256-GCM &amp; Sanctum Bearer tokens.</span>
+          <span>End-to-end encrypted &amp; private to your account.</span>
         </div>
       </div>
     </div>

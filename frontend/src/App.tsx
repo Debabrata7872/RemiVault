@@ -361,13 +361,13 @@ const RemiVaultApp: React.FC = () => {
           <header className="hero">
             <div className="hero-pill">
               <Sparkles size={14} color="#818cf8" />
-              <span>Zero-Knowledge Personal Productivity Sanctuary</span>
+              <span>Your Personal All-In-One Workspace</span>
             </div>
             <h1 className="hero-title">
-              Your Private Life, <span>Encrypted and Organized</span>
+              Your Private Life, <span>Secure and Organized</span>
             </h1>
             <p className="hero-subtitle">
-              RemiVault provides a secure, isolated space for your sensitive passwords, critical renewal dates, reminders, and private notes. Built with state-of-the-art cryptography.
+              RemiVault gives you a secure, private place to organize your passwords, important dates, daily reminders, and notes.
             </p>
             <div className="overview-quick-actions" style={{ justifyContent: 'center', marginTop: '0.75rem' }}>
               <button 
@@ -399,7 +399,7 @@ const RemiVaultApp: React.FC = () => {
               </div>
               <h3 className="overview-card-title">Password &amp; Credential Vault</h3>
               <p className="overview-card-desc">
-                AES-256-GCM authenticated encryption for web logins, API tokens, and payment cards. Zero plaintext stored.
+                Safely organize web logins, account passwords, and sensitive credentials with complete privacy.
               </p>
               <div className="overview-card-footer">
                 <span>Explore Vault</span>
@@ -467,16 +467,16 @@ const RemiVaultApp: React.FC = () => {
                   <Shield size={22} />
                 </div>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Multi-User Architecture &amp; Data Isolation</h4>
+                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>100% Private &amp; Protected</h4>
                   <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                    Every user account is cryptographically isolated. Your records, notes, and credentials cannot be seen by other users or unauthorized parties.
+                    Your account is completely private. Your saved passwords, dates, reminders, and notes can only be viewed by you.
                   </p>
                 </div>
               </div>
               <div className="security-badges-row">
-                <span className="security-pill">Isolated Accounts</span>
-                <span className="security-pill">Bcrypt &amp; Argon2id</span>
-                <span className="security-pill">Sanctum Tokens</span>
+                <span className="security-pill">Private Account</span>
+                <span className="security-pill">Secure Login</span>
+                <span className="security-pill">4-Digit PIN Access</span>
               </div>
             </div>
           </section>

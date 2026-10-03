@@ -12,21 +12,16 @@ import {
   EyeOff, 
   CheckCircle2, 
   AlertCircle,
-  Sparkles,
   ChevronDown,
   Palette,
   HelpCircle,
   Users,
   LogOut,
-  Send,
-  Database,
-  Activity,
-  HardDrive
+  Send
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import type { Theme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { verifyProfilePin } from '../../services/deviceProfiles';
 import { changePasswordApi, sendFeedbackApi } from '../../services/api';
 import { UserAvatar } from '../common/UserAvatar';
 
@@ -83,34 +78,50 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
 
+  // Reset all modal internal state (collapses all accordions and clears inputs)
+  const resetAllState = () => {
+    setOpenSection(null);
+    setSecurityTab('pin');
+    setCurrentPin('');
+    setNewPin('');
+    setConfirmNewPin('');
+    setPinError(null);
+    setPinSuccess(null);
+    setIsPinSubmitting(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmNewPassword('');
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setPasswordError(null);
+    setPasswordSuccess(null);
+    setIsPasswordSubmitting(false);
+    setFeedbackType('improvement');
+    setFeedbackMessage('');
+    setFeedbackSuccess(null);
+    setFeedbackError(null);
+    setIsFeedbackSubmitting(false);
+  };
+
+  const handleModalClose = () => {
+    resetAllState();
+    onClose();
+  };
+
   // Close on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        onClose();
+        handleModalClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
-  // Reset forms on modal open/close
+  // Reset forms and collapse all accordions on modal open/close
   useEffect(() => {
-    if (isOpen) {
-      setCurrentPin('');
-      setNewPin('');
-      setConfirmNewPin('');
-      setPinError(null);
-      setPinSuccess(null);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-      setPasswordError(null);
-      setPasswordSuccess(null);
-      setFeedbackMessage('');
-      setFeedbackSuccess(null);
-      setFeedbackError(null);
-    }
+    resetAllState();
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -157,7 +168,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   ];
 
   /**
-   * Handle Profile 4-Digit PIN Update
+   * Handle Profile 4-Digit PIN Update (Saved directly in database & synced across devices)
    */
   const handleUpdatePin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,17 +180,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       return;
     }
 
-    if (activeProfile.hasPin) {
-      if (currentPin.length !== 4) {
-        setPinError('Please enter your current 4-digit PIN.');
-        return;
-      }
-
-      const isCurrentValid = await verifyProfilePin(activeProfile.id, currentPin);
-      if (!isCurrentValid) {
-        setPinError('Current PIN is incorrect.');
-        return;
-      }
+    if (activeProfile.hasPin && currentPin.length !== 4) {
+      setPinError('Please enter your current 4-digit PIN.');
+      return;
     }
 
     if (newPin.length !== 4) {
@@ -194,14 +197,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     setIsPinSubmitting(true);
     try {
-      await setupPin(newPin);
-      setPinSuccess('4-Digit Profile PIN updated successfully!');
+      await setupPin(newPin, activeProfile.hasPin ? currentPin : undefined);
+      setPinSuccess('PIN updated successfully!');
       setCurrentPin('');
       setNewPin('');
       setConfirmNewPin('');
     } catch (err: unknown) {
       const e = err as Error;
-      setPinError(e.message || 'Failed to update PIN.');
+      setPinError(e.message || 'Failed to update PIN. Please try again.');
     } finally {
       setIsPinSubmitting(false);
     }
@@ -271,7 +274,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         name: user?.name,
         email: user?.email,
       });
-      setFeedbackSuccess(res.message || 'Thank you! Your feedback has been received and securely stored.');
+      setFeedbackSuccess(res.message || 'Thank you! We have received your feedback.');
       setFeedbackMessage('');
     } catch (err: unknown) {
       const apiErr = err as { message?: string; errors?: Record<string, string[]> };
@@ -283,7 +286,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className="modal-backdrop settings-modal-backdrop" onClick={onClose} style={{ zIndex: 1100 }}>
+    <div className="modal-backdrop settings-modal-backdrop" onClick={handleModalClose} style={{ zIndex: 1100 }}>
       <div 
         className="modal-content settings-modal-sheet" 
         onClick={(e) => e.stopPropagation()}
@@ -294,7 +297,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <h2 className="settings-sheet-title">Settings</h2>
             <p className="settings-sheet-subtitle">Manage profile, appearance, and vault security</p>
           </div>
-          <button className="settings-sheet-close" onClick={onClose} aria-label="Close settings">
+          <button className="settings-sheet-close" onClick={handleModalClose} aria-label="Close settings">
             <X size={18} />
           </button>
         </div>
@@ -333,7 +336,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="button"
                 className="settings-quick-lock-btn"
                 onClick={() => {
-                  onClose();
+                  handleModalClose();
                   lockApp();
                 }}
                 title="Immediately lock profile with 4-digit PIN"
@@ -346,10 +349,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="button"
                 className={`settings-storage-toggle-btn ${openSection === 'profile' ? 'active' : ''}`}
                 onClick={() => toggleSection('profile')}
-                title="View cryptographic storage breakdown"
+                title="View summary of your saved items"
               >
-                <Database size={13} color="#818cf8" />
-                <span>{totalStoredRecords} Encrypted Records</span>
+                <Shield size={13} color="#818cf8" />
+                <span>{totalStoredRecords} Saved Items</span>
                 <ChevronDown size={14} className={`settings-storage-chevron ${openSection === 'profile' ? 'expanded' : ''}`} />
               </button>
             </div>
@@ -359,11 +362,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="settings-profile-expanded">
                 <div className="settings-storage-breakdown">
                   <div className="settings-storage-header">
-                    <Database size={14} color="#818cf8" />
-                    <span>Zero-Knowledge Isolated Vault #{user.id}</span>
+                    <Shield size={14} color="#818cf8" />
+                    <span>Personal Vault Summary</span>
                   </div>
                   <p className="settings-storage-desc">
-                    All client-side passwords, confidential dates, reminders, and notes are cryptographically shielded before storage.
+                    Your passwords, important dates, reminders, and notes are securely protected and private to you.
                   </p>
 
                   <div className="settings-metrics-pills">
@@ -386,8 +389,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
 
                   <div className="settings-profile-meta-footer">
-                    <Activity size={13} color="#10b981" />
-                    <span>Total {totalStoredRecords} items securely synced in Asia/Kolkata</span>
+                    <CheckCircle2 size={13} color="#10b981" />
+                    <span>All your records are protected and up to date</span>
                   </div>
                 </div>
               </div>
@@ -486,7 +489,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <span className="settings-title-full">Security &amp; Credentials</span>
                     <span className="settings-title-short">Security &amp; PIN</span>
                   </h4>
-                  <span className="settings-item-sub">Device lock PIN &amp; account password</span>
+                  <span className="settings-item-sub">4-digit PIN &amp; account password</span>
                 </div>
               </div>
               <div className="settings-hub-row-right">
@@ -582,15 +585,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                     <div className="settings-form-footer">
                       <div className="settings-tip">
-                        <Sparkles size={13} color="#818cf8" />
-                        <span>Strictly 4 digits • Stored locally</span>
+                        <Shield size={13} color="#10b981" />
+                        <span>Must be 4 digits • Works across all your devices</span>
                       </div>
                       <button
                         type="submit"
                         className="btn btn-primary settings-submit-btn"
                         disabled={isPinSubmitting || newPin.length !== 4 || confirmNewPin.length !== 4 || (Boolean(activeProfile?.hasPin) && currentPin.length !== 4)}
                       >
-                        {isPinSubmitting ? 'Saving...' : activeProfile?.hasPin ? 'Update 4-Digit PIN' : 'Save 4-Digit PIN'}
+                        {isPinSubmitting ? 'Updating PIN...' : activeProfile?.hasPin ? 'Update PIN' : 'Save PIN'}
                       </button>
                     </div>
                   </form>
@@ -674,7 +677,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="settings-form-footer">
                       <div className="settings-tip">
                         <Shield size={13} color="#10b981" />
-                        <span>Bcrypt encrypted on server</span>
+                        <span>Must be at least 8 characters</span>
                       </div>
                       <button
                         type="submit"
@@ -774,7 +777,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                   <div className="settings-form-footer">
                     <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-                      Timestamped in Asia/Kolkata timezone
+                      We appreciate your feedback
                     </span>
                     <button
                       type="submit"
@@ -823,7 +826,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     type="button"
                     className="settings-session-action-btn switch-btn"
                     onClick={() => {
-                      onClose();
+                      handleModalClose();
                       lockApp();
                     }}
                   >
@@ -840,7 +843,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     type="button"
                     className="settings-session-action-btn logout-btn"
                     onClick={() => {
-                      onClose();
+                      handleModalClose();
                       logout(false);
                     }}
                   >
@@ -859,10 +862,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         </div>
 
-        {/* Minimal Bottom Info (Done button completely removed as requested) */}
+        {/* Minimal Bottom Info */}
         <div className="settings-minimal-footer">
-          <HardDrive size={13} />
-          <span>RemiVault v0.2.0 • Zero-Knowledge Isolated</span>
+          <Shield size={13} />
+          <span>RemiVault • Secure &amp; Private</span>
         </div>
       </div>
     </div>

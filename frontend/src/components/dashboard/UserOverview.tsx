@@ -77,7 +77,7 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
           </div>
           <h3 className="overview-card-title">Password Vault</h3>
           <p className="overview-card-desc">
-            Encrypted logins, API keys, and sensitive credentials with zero-plaintext storage.
+            Safely store your passwords, logins, and accounts in complete privacy.
           </p>
           <div className="overview-card-footer">
             <span>
@@ -252,14 +252,14 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             <div>
               <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600 }}>Your Privacy is Guaranteed</h4>
               <p className="security-card-desc" style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                RemiVault isolates every user's data with cryptographic encryption and strict ownership checks. Only you have access to your vault secrets.
+                RemiVault keeps all your information completely private and secure. Only you have access to your saved data.
               </p>
             </div>
           </div>
           <div className="security-badges-row">
-            <span className="security-pill">AES-256-GCM</span>
-            <span className="security-pill">Strict IDOR Proof</span>
-            <span className="security-pill">Zero Data Mining</span>
+            <span className="security-pill">Private &amp; Protected</span>
+            <span className="security-pill">No Tracking</span>
+            <span className="security-pill">Secure Access</span>
           </div>
         </div>
       </section>

@@ -298,13 +298,13 @@ export const RemindersSection: React.FC = () => {
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <h2 className="section-title" style={{ margin: 0 }}>Time-Sensitive Reminders</h2>
+              <h2 className="section-title" style={{ margin: 0 }}>Reminders &amp; Tasks</h2>
               <span className="badge badge-warning" style={{ fontSize: '0.72rem', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-                Stage 5 Active
+                Active Alerts
               </span>
             </div>
             <p className="section-desc" style={{ margin: '0.2rem 0 0 0' }}>
-              Schedule critical alerts with UTC normalization, status lifecycle, and snooze controls.
+              Stay on top of your daily tasks, deadlines, and time-sensitive reminders.
             </p>
           </div>
         </div>
