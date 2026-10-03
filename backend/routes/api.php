@@ -50,6 +50,8 @@ Route::prefix('auth')->group(function () {
         ->middleware('throttle:10,1');
     Route::post('/verify-email-otp-reset', [AuthController::class, 'verifyEmailOtpReset'])
         ->middleware('throttle:10,1');
+    Route::post('/verify-email-otp-pin', [AuthController::class, 'verifyEmailOtpResetPin'])
+        ->middleware('throttle:10,1');
 
     // Firebase Authentication (Google Sign-In & Phone OTP)
     Route::post('/firebase-login', [AuthController::class, 'firebaseLogin'])

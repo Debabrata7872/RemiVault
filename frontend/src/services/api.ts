@@ -446,8 +446,12 @@ export async function setSecurityPinApi(
 
 export async function verifySecurityPinApi(
   pin: string,
+  token?: string,
   options?: RequestOptions
 ): Promise<{ valid: boolean; message: string; user?: User }> {
+  if (token) {
+    setStoredToken(token);
+  }
   try {
     return await apiPost<{ valid: boolean; message: string; user?: User }>(
       '/auth/security-pin/verify',
@@ -461,6 +465,21 @@ export async function verifySecurityPinApi(
     }
     throw err;
   }
+}
+
+export async function resetPinWithOtpApi(
+  data: {
+    email: string;
+    otp: string;
+    pin: string;
+  },
+  options?: RequestOptions
+): Promise<{ message: string; has_pin: boolean; user: User; token: string }> {
+  return apiPost<{ message: string; has_pin: boolean; user: User; token: string }>(
+    '/auth/verify-email-otp-pin',
+    data,
+    options
+  );
 }
 
 

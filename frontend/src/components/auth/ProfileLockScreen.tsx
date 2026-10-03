@@ -12,10 +12,11 @@ import {
   AlertCircle, 
   RotateCcw,
   Sparkles,
-  Delete
+  Delete,
+  LogIn
 } from 'lucide-react';
 import type { DeviceProfile } from '../../services/deviceProfiles';
-import { sendEmailOtpApi, checkEmailOtpApi } from '../../services/api';
+import { sendEmailOtpApi } from '../../services/api';
 import { UserAvatar } from '../common/UserAvatar';
 
 interface ProfileLockScreenProps {
@@ -25,7 +26,8 @@ interface ProfileLockScreenProps {
   onSwitchProfile: (profileId: number) => void;
   onAddNewAccount: () => void;
   onRemoveProfile: (profileId: number) => void;
-  onResetPinWithOtp: (profileId: number, newPin: string) => Promise<void>;
+  onResetPinWithOtp: (email: string, otp: string, newPin: string) => Promise<void>;
+  onResetPasswordWithOtp: (email: string, password: string, confirmation: string, otp: string) => Promise<void>;
 }
 
 type ScreenView = 'pin' | 'switcher' | 'forgot_pin_request' | 'forgot_pin_verify';
@@ -38,6 +40,7 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
   onAddNewAccount,
   onRemoveProfile,
   onResetPinWithOtp,
+  onResetPasswordWithOtp,
 }) => {
   const [view, setView] = useState<ScreenView>('pin');
   const [selectedProfileId, setSelectedProfileId] = useState<number | null>(
@@ -54,10 +57,13 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
   const [isShaking, setIsShaking] = useState(false);
   const [pinError, setPinError] = useState<string | null>(null);
 
-  // Forgot PIN state
+  // Forgot PIN & Password recovery state
+  const [recoveryTab, setRecoveryTab] = useState<'pin' | 'password'>('password');
   const [resetOtp, setResetOtp] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmNewPin, setConfirmNewPin] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [resetError, setResetError] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
   const [resetCooldown, setResetCooldown] = useState(0);
@@ -94,8 +100,12 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
       }
     } catch (err: unknown) {
       const e = err as Error;
+      setIsShaking(true);
       setPinError(e.message || 'Error verifying PIN');
-      setPin('');
+      setTimeout(() => {
+        setIsShaking(false);
+        setPin('');
+      }, 500);
     } finally {
       setIsVerifying(false);
     }
@@ -191,8 +201,10 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
     if (!targetProfile) return;
 
     setResetError(null);
+    setResetSuccess(null);
 
-    if (resetOtp.trim().length < 6) {
+    const cleanOtp = resetOtp.trim();
+    if (cleanOtp.length !== 6) {
       setResetError('Please enter the 6-digit code received in your email.');
       return;
     }
@@ -209,18 +221,55 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
 
     setIsResetSubmitting(true);
     try {
-      // Check OTP validity with backend
-      await checkEmailOtpApi({
-        email: targetProfile.email,
-        type: 'forgot_password',
-        otp: resetOtp.trim(),
-      });
+      // Direct end-to-end OTP verification, database PIN update & session grant
+      await onResetPinWithOtp(targetProfile.email, cleanOtp, newPin);
 
-      // Update local profile PIN
-      await onResetPinWithOtp(targetProfile.id, newPin);
+      // Successfully updated! Smooth unlock
+      setResetSuccess('PIN reset successfully! Unlocking your vault...');
+      setTimeout(() => {
+        setResetSuccess(null);
+        setView('pin');
+      }, 600);
+    } catch (err: unknown) {
+      const e = err as Error;
+      setResetError(e.message || 'Invalid or expired verification code.');
+    } finally {
+      setIsResetSubmitting(false);
+    }
+  };
 
-      // Successfully updated! Return to unlocked / home
-      setResetSuccess('PIN reset successfully! Unlocking profile...');
+  // Verify OTP and Save New Account Password
+  const handleVerifyOtpAndSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetProfile) return;
+
+    setResetError(null);
+    setResetSuccess(null);
+
+    const cleanOtp = resetOtp.trim();
+    if (cleanOtp.length !== 6) {
+      setResetError('Please enter the 6-digit code received in your email.');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setResetError('New password must be at least 8 characters long.');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setResetError('Passwords do not match. Please verify both inputs.');
+      return;
+    }
+
+    setIsResetSubmitting(true);
+    try {
+      await onResetPasswordWithOtp(targetProfile.email, newPassword, confirmNewPassword, cleanOtp);
+      setResetSuccess('Password reset successfully! Unlocking your vault...');
+      setTimeout(() => {
+        setResetSuccess(null);
+        setView('pin');
+      }, 600);
     } catch (err: unknown) {
       const e = err as Error;
       setResetError(e.message || 'Invalid or expired verification code.');
@@ -339,42 +388,64 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
             </div>
 
             {/* Footer Navigation Options */}
-            <div className="profile-lock-footer-actions">
-              <button
-                type="button"
-                className="profile-lock-link-btn"
-                onClick={() => {
-                  setResetError(null);
-                  setResetSuccess(null);
-                  setView('forgot_pin_request');
-                }}
-              >
-                <KeyRound size={14} />
-                <span>Forgot PIN?</span>
-              </button>
+            <div className="profile-lock-footer-nav">
+              <div className="profile-lock-footer-row">
+                <button
+                  type="button"
+                  className="profile-lock-link-btn"
+                  onClick={() => {
+                    setResetError(null);
+                    setResetSuccess(null);
+                    setRecoveryTab('pin');
+                    setView('forgot_pin_request');
+                  }}
+                  title="Reset your 4-digit security PIN via email code"
+                >
+                  <KeyRound size={14} />
+                  <span>Forgot PIN?</span>
+                </button>
 
-              <span className="profile-lock-sep">•</span>
+                <span className="profile-lock-sep">•</span>
 
-              <button
-                type="button"
-                className="profile-lock-link-btn"
-                onClick={onAddNewAccount}
-                title="Unlock or sign in using your account password or email"
-              >
-                <Lock size={14} />
-                <span>Sign in with Password</span>
-              </button>
+                <button
+                  type="button"
+                  className="profile-lock-link-btn"
+                  onClick={() => {
+                    setResetError(null);
+                    setResetSuccess(null);
+                    setRecoveryTab('password');
+                    setView('forgot_pin_request');
+                  }}
+                  title="Reset your master account password via email code"
+                >
+                  <Lock size={14} />
+                  <span>Forgot Password?</span>
+                </button>
+              </div>
 
-              <span className="profile-lock-sep">•</span>
+              <div className="profile-lock-footer-row secondary">
+                <button
+                  type="button"
+                  className="profile-lock-link-btn"
+                  onClick={onAddNewAccount}
+                  title="Sign in with your email & password"
+                >
+                  <LogIn size={13} />
+                  <span>Sign In</span>
+                </button>
 
-              <button
-                type="button"
-                className="profile-lock-link-btn"
-                onClick={() => setView('switcher')}
-              >
-                <Users size={14} />
-                <span>Switch ({profiles.length})</span>
-              </button>
+                <span className="profile-lock-sep">•</span>
+
+                <button
+                  type="button"
+                  className="profile-lock-link-btn"
+                  onClick={() => setView('switcher')}
+                  title="Switch or manage profiles on this device"
+                >
+                  <Users size={13} />
+                  <span>Switch Profile ({profiles.length})</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -473,7 +544,7 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
         )}
 
         {/* ===================================================================
-            VIEW 3: FORGOT PIN - REQUEST EMAIL OTP
+            VIEW 3: FORGOT PIN & PASSWORD - REQUEST EMAIL OTP
             =================================================================== */}
         {view === 'forgot_pin_request' && targetProfile && (
           <div className="profile-lock-card">
@@ -492,9 +563,11 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
               <div className="profile-pin-badge-icon">
                 <Mail size={24} />
               </div>
-              <h2 className="profile-lock-user-name">Reset Profile PIN</h2>
+              <h2 className="profile-lock-user-name">
+                {recoveryTab === 'password' ? 'Reset Account Password' : 'Reset Profile PIN'}
+              </h2>
               <p className="profile-lock-user-email">
-                We will send a 6-digit verification code to your verified email:
+                We will dispatch a 6-digit verification code to your verified email:
                 <br />
                 <strong style={{ color: 'var(--text-primary)', marginTop: '0.25rem', display: 'inline-block' }}>
                   {targetProfile.email}
@@ -523,11 +596,25 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
                   : 'Send Verification Code'}
               </button>
             </form>
+
+            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+              <button
+                type="button"
+                className="auth-link-btn"
+                style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                onClick={() => {
+                  setResetError(null);
+                  setView('forgot_pin_verify');
+                }}
+              >
+                Already have a 6-digit code? Enter code directly &rarr;
+              </button>
+            </div>
           </div>
         )}
 
         {/* ===================================================================
-            VIEW 4: FORGOT PIN - VERIFY OTP & ENTER NEW PIN
+            VIEW 4: FORGOT CREDENTIALS - VERIFY OTP & ENTER NEW PIN / PASSWORD
             =================================================================== */}
         {view === 'forgot_pin_verify' && targetProfile && (
           <div className="profile-lock-card">
@@ -540,92 +627,204 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
                 <ArrowLeft size={16} />
                 <span>Resend Code</span>
               </button>
+              <button
+                type="button"
+                className="profile-back-btn"
+                onClick={() => setView('pin')}
+              >
+                <span>Back to PIN</span>
+              </button>
             </div>
 
-            <div className="profile-lock-user-hero" style={{ marginTop: '0.5rem' }}>
+            <div className="profile-lock-user-hero" style={{ marginTop: '0.25rem', marginBottom: '0.5rem' }}>
               <div className="profile-pin-badge-icon">
-                <Sparkles size={24} />
+                <Sparkles size={22} />
               </div>
-              <h2 className="profile-lock-user-name">Set New PIN</h2>
+              <h2 className="profile-lock-user-name">Account Recovery</h2>
               <p className="profile-lock-user-email">
-                Enter the code sent to <strong>{maskEmail(targetProfile.email)}</strong> and choose a new PIN.
+                Verification code dispatched to <strong>{maskEmail(targetProfile.email)}</strong>
               </p>
             </div>
 
-            {resetSuccess && (
-              <div className="alert alert-success" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.75rem 0' }}>
-                <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
-                <span>{resetSuccess}</span>
-              </div>
-            )}
-
-            {resetError && (
-              <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.75rem 0' }}>
-                <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                <span>{resetError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleVerifyOtpAndSavePin} style={{ marginTop: '1rem' }}>
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label" htmlFor="reset-otp-input">
-                  6-Digit Verification Code
-                </label>
-                <input
-                  id="reset-otp-input"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="123456"
-                  className="form-control"
-                  style={{ textAlign: 'center', letterSpacing: '0.3em', fontSize: '1.2rem', fontWeight: 700 }}
-                  value={resetOtp}
-                  onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  autoFocus
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label" htmlFor="reset-new-pin">
-                  New 4-Digit PIN
-                </label>
-                <input
-                  id="reset-new-pin"
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={4}
-                  placeholder="••••"
-                  className="form-control"
-                  value={newPin}
-                  onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label className="form-label" htmlFor="reset-confirm-pin">
-                  Confirm New 4-Digit PIN
-                </label>
-                <input
-                  id="reset-confirm-pin"
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={4}
-                  placeholder="••••"
-                  className="form-control"
-                  value={confirmNewPin}
-                  onChange={(e) => setConfirmNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                />
-              </div>
+            {/* Recovery Switcher Tabs */}
+            <div className="profile-recovery-tabs">
+              <button
+                type="button"
+                className={`profile-recovery-tab-btn ${recoveryTab === 'password' ? 'active' : ''}`}
+                onClick={() => {
+                  setRecoveryTab('password');
+                  setResetError(null);
+                }}
+              >
+                <Lock size={15} />
+                <span>Reset Password</span>
+              </button>
 
               <button
-                type="submit"
-                className="btn btn-primary"
-                style={{ width: '100%', padding: '0.85rem', fontSize: '1rem' }}
-                disabled={isResetSubmitting || resetOtp.length < 6 || newPin.length !== 4 || confirmNewPin.length !== 4}
+                type="button"
+                className={`profile-recovery-tab-btn ${recoveryTab === 'pin' ? 'active' : ''}`}
+                onClick={() => {
+                  setRecoveryTab('pin');
+                  setResetError(null);
+                }}
               >
-                {isResetSubmitting ? 'Verifying & Unlocking...' : 'Save New PIN & Unlock'}
+                <KeyRound size={15} />
+                <span>Reset PIN</span>
               </button>
-            </form>
+            </div>
+
+            {/* TAB A: RESET PIN */}
+            {recoveryTab === 'pin' && (
+              <form onSubmit={handleVerifyOtpAndSavePin} style={{ marginTop: '0.5rem' }}>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" htmlFor="reset-otp-input">
+                    6-Digit Verification Code
+                  </label>
+                  <input
+                    id="reset-otp-input"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="123456"
+                    className="form-control"
+                    style={{ textAlign: 'center', letterSpacing: '0.3em', fontSize: '1.2rem', fontWeight: 700 }}
+                    value={resetOtp}
+                    onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" htmlFor="reset-new-pin">
+                    New 4-Digit PIN
+                  </label>
+                  <input
+                    id="reset-new-pin"
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="••••"
+                    className="form-control"
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                  <label className="form-label" htmlFor="reset-confirm-pin">
+                    Confirm New 4-Digit PIN
+                  </label>
+                  <input
+                    id="reset-confirm-pin"
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="••••"
+                    className="form-control"
+                    value={confirmNewPin}
+                    onChange={(e) => setConfirmNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  />
+                </div>
+
+                {resetSuccess && (
+                  <div className="alert alert-success" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                    <span>{resetSuccess}</span>
+                  </div>
+                )}
+
+                {resetError && (
+                  <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                    <span>{resetError}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '0.85rem', fontSize: '1rem' }}
+                  disabled={isResetSubmitting || resetOtp.length < 6 || newPin.length !== 4 || confirmNewPin.length !== 4}
+                >
+                  {isResetSubmitting ? 'Verifying & Unlocking...' : 'Save New PIN & Unlock'}
+                </button>
+              </form>
+            )}
+
+            {/* TAB B: RESET PASSWORD */}
+            {recoveryTab === 'password' && (
+              <form onSubmit={handleVerifyOtpAndSavePassword} style={{ marginTop: '0.5rem' }}>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" htmlFor="reset-pwd-otp-input">
+                    6-Digit Verification Code
+                  </label>
+                  <input
+                    id="reset-pwd-otp-input"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="123456"
+                    className="form-control"
+                    style={{ textAlign: 'center', letterSpacing: '0.3em', fontSize: '1.2rem', fontWeight: 700 }}
+                    value={resetOtp}
+                    onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    autoFocus
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" htmlFor="reset-new-password">
+                    New Master Password (min 8 chars)
+                  </label>
+                  <input
+                    id="reset-new-password"
+                    type="password"
+                    placeholder="At least 8 characters"
+                    className="form-control"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                  <label className="form-label" htmlFor="reset-confirm-password">
+                    Confirm New Password
+                  </label>
+                  <input
+                    id="reset-confirm-password"
+                    type="password"
+                    placeholder="Repeat new password"
+                    className="form-control"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  />
+                </div>
+
+                {resetSuccess && (
+                  <div className="alert alert-success" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                    <span>{resetSuccess}</span>
+                  </div>
+                )}
+
+                {resetError && (
+                  <div className="alert alert-danger" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                    <span>{resetError}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '0.85rem', fontSize: '1rem' }}
+                  disabled={isResetSubmitting || resetOtp.length < 6 || newPassword.length < 8 || confirmNewPassword.length < 8}
+                >
+                  {isResetSubmitting ? 'Resetting & Unlocking...' : 'Reset Password & Unlock'}
+                </button>
+              </form>
+            )}
+
           </div>
         )}
 

@@ -54,7 +54,8 @@ const RemiVaultApp: React.FC = () => {
     switchProfile,
     lockApp,
     removeProfile,
-    resetPinWithOtp
+    resetPinWithOtp,
+    resetPasswordWithOtp
   } = useAuth();
   
   // Health & Diagnostics state (Kept for Admin diagnostics modal)
@@ -266,6 +267,7 @@ const RemiVaultApp: React.FC = () => {
           onAddNewAccount={() => openAuth('login')}
           onRemoveProfile={removeProfile}
           onResetPinWithOtp={resetPinWithOtp}
+          onResetPasswordWithOtp={resetPasswordWithOtp}
         />
       ) : user ? (
         <main className="user-workspace-main">

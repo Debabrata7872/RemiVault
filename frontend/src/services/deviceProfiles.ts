@@ -53,26 +53,152 @@ export function getAvatarColor(identifier: string): string {
 }
 
 /**
- * Generate cryptographic random hex salt
+ * Pure JavaScript SHA-256 implementation (FIPS 180-4).
+ * Used as universal fallback in non-secure contexts (e.g. mobile accessing local server via HTTP IP),
+ * where window.crypto.subtle is intentionally restricted by modern mobile browsers.
  */
-export function generateSalt(): string {
-  const array = new Uint8Array(16);
-  window.crypto.getRandomValues(array);
-  return Array.from(array)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+function sha256PureJs(ascii: string): string {
+  function rightRotate(value: number, amount: number) {
+    return (value >>> amount) | (value << (32 - amount));
+  }
+
+  const mathPow = Math.pow;
+  const maxWord = mathPow(2, 32);
+  const lengthProperty = 'length';
+  let i = 0;
+  let j = 0;
+  let result = '';
+
+  const words: number[] = [];
+  const asciiBitLength = ascii[lengthProperty] * 8;
+
+  const hash: number[] = [];
+  const k: number[] = [];
+  let primeCounter = 0;
+
+  const isComposite: Record<number, boolean> = {};
+  for (let candidate = 2; primeCounter < 64; candidate++) {
+    if (!isComposite[candidate]) {
+      for (i = 0; i < 313; i += candidate) {
+        isComposite[i] = true;
+      }
+      hash[primeCounter] = ((mathPow(candidate, 0.5) % 1) * maxWord) | 0;
+      k[primeCounter] = ((mathPow(candidate, 1 / 3) % 1) * maxWord) | 0;
+      primeCounter++;
+    }
+  }
+
+  ascii += '\x80';
+  while ((ascii[lengthProperty] % 64) - 56) ascii += '\x00';
+  for (i = 0; i < ascii[lengthProperty]; i++) {
+    j = ascii.charCodeAt(i);
+    if (j >> 8) return '';
+    words[i >> 2] |= j << (((3 - i) % 4) * 8);
+  }
+  words[words[lengthProperty]] = (asciiBitLength / maxWord) | 0;
+  words[words[lengthProperty]] = asciiBitLength | 0;
+
+  for (j = 0; j < words[lengthProperty]; ) {
+    const w = words.slice(j, (j += 16));
+    const oldHash = hash.slice(0);
+
+    for (i = 0; i < 64; i++) {
+      const i2 = i - 2,
+        i7 = i - 7,
+        i15 = i - 15,
+        i16 = i - 16;
+      const w15 = w[i15],
+        w2 = w[i2];
+
+      const s0 = i >= 16 ? rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3) : 0;
+      const s1 = i >= 16 ? rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10) : 0;
+
+      const wi =
+        i < 16
+          ? w[i]
+          : (((w[i16] + s0) | 0) + ((w[i7] + s1) | 0)) | 0;
+
+      w[i] = wi;
+
+      const s1_h = rightRotate(hash[4], 6) ^ rightRotate(hash[4], 11) ^ rightRotate(hash[4], 25);
+      const ch = (hash[4] & hash[5]) ^ (~hash[4] & hash[6]);
+      const temp1 = ((((hash[7] + s1_h) | 0) + ch) | 0) + (((k[i] + wi) | 0)) | 0;
+      const s0_h = rightRotate(hash[0], 2) ^ rightRotate(hash[0], 13) ^ rightRotate(hash[0], 22);
+      const maj = (hash[0] & hash[1]) ^ (hash[0] & hash[2]) ^ (hash[1] & hash[2]);
+      const temp2 = (s0_h + maj) | 0;
+
+      hash[7] = hash[6];
+      hash[6] = hash[5];
+      hash[5] = hash[4];
+      hash[4] = (hash[3] + temp1) | 0;
+      hash[3] = hash[2];
+      hash[2] = hash[1];
+      hash[1] = hash[0];
+      hash[0] = (temp1 + temp2) | 0;
+    }
+
+    for (i = 0; i < 8; i++) {
+      hash[i] = (hash[i] + oldHash[i]) | 0;
+    }
+  }
+
+  for (i = 0; i < 8; i++) {
+    for (let b = 3; b >= 0; b--) {
+      const byte = (hash[i] >> (8 * b)) & 255;
+      result += (byte < 16 ? '0' : '') + byte.toString(16);
+    }
+  }
+
+  return result;
 }
 
 /**
- * Cryptographically hash a PIN with a salt using WebCrypto SHA-256
+ * Generate cryptographic random hex salt (with fallback for non-secure contexts)
+ */
+export function generateSalt(): string {
+  try {
+    if (typeof window !== 'undefined' && window.crypto && typeof window.crypto.getRandomValues === 'function') {
+      const array = new Uint8Array(16);
+      window.crypto.getRandomValues(array);
+      return Array.from(array)
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+  } catch {
+    // Fallback
+  }
+  let fallback = '';
+  for (let idx = 0; idx < 32; idx++) {
+    fallback += Math.floor(Math.random() * 16).toString(16);
+  }
+  return fallback;
+}
+
+/**
+ * Cryptographically hash a PIN with a salt.
+ * Uses WebCrypto SHA-256 in secure contexts (HTTPS/localhost) with automatic pure JS fallback on HTTP.
  */
 export async function hashPin(pin: string, salt: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(`${salt}:${pin.trim()}`);
-  const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  const input = `${salt}:${pin.trim()}`;
+  try {
+    if (
+      typeof window !== 'undefined' &&
+      window.crypto &&
+      window.crypto.subtle &&
+      typeof window.crypto.subtle.digest === 'function'
+    ) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(input);
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    }
+  } catch {
+    // Quiet fallback to pure JS
+  }
+  return sha256PureJs(input);
 }
+
 
 /**
  * Retrieve all registered device profiles from LocalStorage

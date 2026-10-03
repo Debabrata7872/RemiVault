@@ -12,7 +12,8 @@ import {
   firebaseLoginApi,
   updateAvatarApi,
   setSecurityPinApi,
-  verifySecurityPinApi
+  verifySecurityPinApi,
+  resetPinWithOtpApi
 } from '../services/api';
 import type { User, ApiError, RequestOptions } from '../services/api';
 import {
@@ -54,7 +55,7 @@ interface AuthContextType {
   switchProfile: (profileId: number) => void;
   lockApp: () => void;
   removeProfile: (profileId: number) => void;
-  resetPinWithOtp: (profileId: number, newPin: string) => Promise<void>;
+  resetPinWithOtp: (email: string, otp: string, newPin: string) => Promise<void>;
   updateUserAvatar: (photoUrl: string) => Promise<void>;
 }
 
@@ -384,10 +385,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // 2. Cross-device backend verification fallback (e.g. user on phone verifying PIN originally created on Desktop, or updated PIN on another device)
     const targetProfile = profile || profiles.find((p) => String(p.id) === String(profileId)) || profiles[0];
-    if (targetProfile && targetProfile.token) {
+    if (targetProfile) {
+      if (!targetProfile.token) {
+        throw new Error('No saved session on this device. Please sign in with your password.');
+      }
       try {
         setStoredToken(targetProfile.token);
-        const res = await verifySecurityPinApi(cleanPin);
+        const res = await verifySecurityPinApi(cleanPin, targetProfile.token);
         if (res.valid) {
           // Success! Save PIN locally on this device so future unlocks are offline & instantaneous
           await setProfilePin(targetProfile.id, cleanPin);
@@ -410,8 +414,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setIsLocked(false);
           return true;
         }
-      } catch (err) {
-        console.warn('Backend PIN verification check error:', err);
+      } catch (err: unknown) {
+        const apiErr = err as ApiError;
+        if (apiErr?.status === 401) {
+          throw new Error('Your session on this device has expired. Please sign in with your password.');
+        }
+        if (apiErr?.status === 422) {
+          return false;
+        }
+        throw new Error(apiErr?.message || 'Network error verifying PIN. Check your connection.');
       }
     }
 
@@ -511,40 +522,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   /**
    * Reset profile PIN via Email OTP
    */
-  const resetPinWithOtp = async (profileId: number, newPin: string): Promise<void> => {
+  const resetPinWithOtp = async (email: string, otp: string, newPin: string): Promise<void> => {
     const cleanPin = newPin.trim();
-    const profiles = getDeviceProfiles();
-    const profile = profiles.find((p) => String(p.id) === String(profileId)) || profiles[0];
+    const cleanOtp = otp.trim();
 
-    // 1. Sync to backend database if token is available
-    if (profile && profile.token) {
-      try {
-        setStoredToken(profile.token);
-        await setSecurityPinApi(cleanPin);
-      } catch (err) {
-        console.warn('Backend PIN sync on OTP reset notice:', err);
-      }
-    }
+    // 1. Call dedicated backend endpoint to verify OTP and reset PIN in database
+    const response = await resetPinWithOtpApi({
+      email,
+      otp: cleanOtp,
+      pin: cleanPin,
+    });
 
-    // 2. Cache on local device profile
-    const targetId = profile ? profile.id : profileId;
-    await setProfilePin(targetId, cleanPin);
-    unlockDeviceSession(targetId);
+    // 2. Save authenticated session and fresh token
+    setStoredToken(response.token);
+    setToken(response.token);
+    setUser(response.user);
+
+    // 3. Cache profile and PIN in local WebCrypto store
+    const profile = saveDeviceProfile(response.user, response.token, response.user.avatar_url);
+    await setProfilePin(profile.id, cleanPin);
+    unlockDeviceSession(profile.id);
+
     const { active, profiles: refreshedProfiles } = refreshProfilesState();
-    if (active) {
-      setUser({
-        id: active.id,
-        name: active.name,
-        email: active.email,
-        avatar_url: active.photoUrl,
-        has_pin: true,
-        created_at: active.createdAt || new Date().toISOString(),
-      });
-      setToken(active.token);
-      setStoredToken(active.token);
-      setActiveProfile(active);
-    }
+    setActiveProfile(active || profile);
     setDeviceProfiles(refreshedProfiles);
+
+    setIsPendingPinSetup(false);
     setIsLocked(false);
   };
 

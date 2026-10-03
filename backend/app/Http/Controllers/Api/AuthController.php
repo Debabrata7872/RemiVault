@@ -447,6 +447,64 @@ class AuthController extends Controller
     }
 
     /**
+     * Verify email OTP and reset user 4-digit security PIN.
+     * Generates a fresh Bearer token so the device profile is instantly re-authenticated and unlocked.
+     */
+    public function verifyEmailOtpResetPin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => 'required|email|max:255|exists:users,email',
+            'pin' => 'required|string|regex:/^\d{4}$/',
+            'otp' => 'required|string|size:6',
+        ]);
+
+        $email = strtolower(trim($validated['email']));
+        $cacheKey = "otp_forgot_password_{$email}";
+        $cached = \Illuminate\Support\Facades\Cache::get($cacheKey);
+
+        if (!$cached) {
+            return response()->json([
+                'message' => 'Verification code has expired or was not requested. Please request a new code.',
+            ], 422);
+        }
+
+        // Check attempts limit (max 5)
+        if (($cached['attempts'] ?? 0) >= 5) {
+            \Illuminate\Support\Facades\Cache::forget($cacheKey);
+            return response()->json([
+                'message' => 'Too many invalid attempts. Please request a new verification code.',
+            ], 429);
+        }
+
+        // Validate code hash
+        if (!Hash::check($validated['otp'], $cached['code'])) {
+            $cached['attempts'] = ($cached['attempts'] ?? 0) + 1;
+            \Illuminate\Support\Facades\Cache::put($cacheKey, $cached, now()->addMinutes(10));
+
+            return response()->json([
+                'message' => 'Invalid verification code. Please check your email and try again.',
+                'remaining_attempts' => 5 - $cached['attempts'],
+            ], 422);
+        }
+
+        // Valid code: purge OTP cache
+        \Illuminate\Support\Facades\Cache::forget($cacheKey);
+
+        $user = User::where('email', $email)->first();
+        $user->security_pin = Hash::make($validated['pin']);
+        $user->save();
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Security PIN reset successfully. Your profile is unlocked.',
+            'has_pin' => true,
+            'user' => $this->formatUser($user),
+            'token' => $token,
+        ]);
+    }
+
+    /**
      * Authenticate or register a user verified via Firebase (Google Sign-In or Phone Auth).
      */
     public function firebaseLogin(Request $request): JsonResponse
