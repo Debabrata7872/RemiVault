@@ -41,7 +41,10 @@ export const AdminDiagnosticsModal: React.FC<AdminDiagnosticsModalProps> = ({
   user,
   maskedToken,
 }) => {
-  if (!isOpen) return null;
+  const ADMIN_EMAIL = 'debabratasahoo499905@gmail.com';
+  const isAdmin = Boolean(user?.email && user.email.toLowerCase().trim() === ADMIN_EMAIL);
+
+  if (!isOpen || !isAdmin) return null;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>

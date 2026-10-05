@@ -65,6 +65,10 @@ const RemiVaultApp: React.FC = () => {
   const [latency, setLatency] = useState<number | null>(null);
   const [isAdminDiagOpen, setIsAdminDiagOpen] = useState<boolean>(false);
 
+  // Super Admin Authorization (Exclusive to debabratasahoo499905@gmail.com)
+  const ADMIN_EMAIL = 'debabratasahoo499905@gmail.com';
+  const isAdmin = Boolean(user?.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim());
+
   // Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
@@ -488,16 +492,18 @@ const RemiVaultApp: React.FC = () => {
         <div>
           <span>&copy; {new Date().getFullYear()} RemiVault. All personal user data is strictly encrypted and isolated.</span>
         </div>
-        <div className="footer-links">
-          <button 
-            className="footer-btn-link"
-            onClick={() => setIsAdminDiagOpen(true)}
-            title="Open internal infrastructure & API telemetry"
-          >
-            <Terminal size={14} />
-            <span>System Diagnostics (Admin)</span>
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="footer-links">
+            <button 
+              className="footer-btn-link"
+              onClick={() => setIsAdminDiagOpen(true)}
+              title="Open internal infrastructure & API telemetry (Admin only)"
+            >
+              <Terminal size={14} />
+              <span>System Diagnostics (Admin)</span>
+            </button>
+          </div>
+        )}
       </footer>
 
       {/* Authentication Modal */}
@@ -644,18 +650,20 @@ const RemiVaultApp: React.FC = () => {
         </div>
       )}
 
-      {/* Admin / System Diagnostics Modal (Kept safe for future Admin Panel) */}
-      <AdminDiagnosticsModal
-        isOpen={isAdminDiagOpen}
-        onClose={() => setIsAdminDiagOpen(false)}
-        health={health}
-        loading={healthLoading}
-        fetchStatus={fetchStatus}
-        latency={latency}
-        error={healthError}
-        user={user}
-        maskedToken={maskedToken}
-      />
+      {/* Admin / System Diagnostics Modal (Accessible strictly to admin user) */}
+      {isAdmin && (
+        <AdminDiagnosticsModal
+          isOpen={isAdminDiagOpen}
+          onClose={() => setIsAdminDiagOpen(false)}
+          health={health}
+          loading={healthLoading}
+          fetchStatus={fetchStatus}
+          latency={latency}
+          error={healthError}
+          user={user}
+          maskedToken={maskedToken}
+        />
+      )}
     </div>
   );
 };

@@ -31,9 +31,12 @@ class OtpMail extends Mailable
      */
     public function envelope(): Envelope
     {
-        $subject = $this->type === 'register' 
-            ? "Your RemiVault Verification Code: {$this->otp}" 
-            : "Reset Your RemiVault Password - Code: {$this->otp}";
+        $subject = match ($this->type) {
+            'register' => "{$this->otp} is your RemiVault verification code",
+            'forgot_password' => "{$this->otp} is your RemiVault password reset code",
+            'reset_pin' => "{$this->otp} is your RemiVault PIN reset code",
+            default => "Your RemiVault Security Code: {$this->otp}",
+        };
 
         return new Envelope(
             subject: $subject,
@@ -45,12 +48,24 @@ class OtpMail extends Mailable
      */
     public function content(): Content
     {
+        $recipientEmail = null;
+        if (!empty($this->to) && isset($this->to[0]['address'])) {
+            $recipientEmail = $this->to[0]['address'];
+        }
+
+        $securityRef = 'RV-' . strtoupper(substr(hash('crc32b', $this->otp . $this->type . microtime()), 0, 8));
+
         return new Content(
             view: 'emails.otp',
             with: [
                 'otp' => $this->otp,
+                'digits' => str_split($this->otp),
                 'type' => $this->type,
                 'userName' => $this->userName,
+                'recipientEmail' => $recipientEmail,
+                'timestamp' => now()->setTimezone('UTC')->format('M d, Y • H:i \U\T\C'),
+                'securityRef' => $securityRef,
+                'expiresInMinutes' => 10,
             ],
         );
     }
