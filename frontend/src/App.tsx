@@ -90,6 +90,7 @@ const RemiVaultApp: React.FC = () => {
   const [notesCount, setNotesCount] = useState<number>(0);
   const [urgentDatesCount, setUrgentDatesCount] = useState<number>(0);
   const [upcomingRemindersCount, setUpcomingRemindersCount] = useState<number>(0);
+  const [isSummaryLoading, setIsSummaryLoading] = useState<boolean>(true);
 
   const fetchStatus = useCallback(async () => {
     setHealthLoading(true);
@@ -114,6 +115,7 @@ const RemiVaultApp: React.FC = () => {
   // Fetch summary counts for the user dashboard
   const loadDashboardSummary = useCallback(async () => {
     if (!user) return;
+    setIsSummaryLoading(true);
     try {
       const [vaultData, datesData, remindersData, notesData] = await Promise.allSettled([
         fetchVaultEntriesApi(),
@@ -138,6 +140,8 @@ const RemiVaultApp: React.FC = () => {
       }
     } catch {
       // Quiet fallback
+    } finally {
+      setIsSummaryLoading(false);
     }
   }, [user]);
 
@@ -348,6 +352,7 @@ const RemiVaultApp: React.FC = () => {
               notesCount={notesCount}
               urgentDatesCount={urgentDatesCount}
               upcomingRemindersCount={upcomingRemindersCount}
+              isLoading={isSummaryLoading}
             />
           )}
 

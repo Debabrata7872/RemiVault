@@ -8,7 +8,8 @@ import {
   Sparkles, 
   AlertTriangle, 
   CheckCircle2, 
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react';
 
 interface UserOverviewProps {
@@ -20,6 +21,7 @@ interface UserOverviewProps {
   notesCount?: number;
   urgentDatesCount?: number;
   upcomingRemindersCount?: number;
+  isLoading?: boolean;
 }
 
 export const UserOverview: React.FC<UserOverviewProps> = ({
@@ -31,6 +33,7 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
   notesCount = 0,
   urgentDatesCount = 0,
   upcomingRemindersCount = 0,
+  isLoading = false,
 }) => {
   // Determine greeting based on current time
   const getGreeting = () => {
@@ -47,10 +50,17 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
       {/* Welcome Hero Banner */}
       <section className="overview-welcome-card">
         <div className="overview-welcome-content">
-          <div className="overview-welcome-pill">
-            <span className="overview-pulse-dot"></span>
-            <span>Personal Vault Active</span>
-          </div>
+          {isLoading ? (
+            <div className="overview-welcome-pill loading">
+              <Loader2 size={12} className="spin" />
+              <span>Syncing vault credentials...</span>
+            </div>
+          ) : (
+            <div className="overview-welcome-pill">
+              <span className="overview-pulse-dot"></span>
+              <span>Personal Vault Active</span>
+            </div>
+          )}
           <h2 className="overview-greeting">
             {getGreeting()}, <span className="overview-name-gradient">{userName}</span> 👋
           </h2>
@@ -73,7 +83,9 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             <div className="overview-icon-box vault-icon-box">
               <KeyRound size={22} />
             </div>
-            <span className="overview-card-count">{vaultCount}</span>
+            <span className="overview-card-count">
+              {isLoading ? <span className="metric-skeleton-pulse" /> : vaultCount}
+            </span>
           </div>
           <h3 className="overview-card-title">Password Vault</h3>
           <p className="overview-card-desc">
@@ -99,7 +111,9 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             <div className="overview-icon-box dates-icon-box">
               <Calendar size={22} />
             </div>
-            <span className="overview-card-count">{datesCount}</span>
+            <span className="overview-card-count">
+              {isLoading ? <span className="metric-skeleton-pulse" /> : datesCount}
+            </span>
           </div>
           <h3 className="overview-card-title">Important Dates</h3>
           <p className="overview-card-desc">
@@ -125,7 +139,9 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             <div className="overview-icon-box reminders-icon-box">
               <Bell size={22} />
             </div>
-            <span className="overview-card-count">{remindersCount}</span>
+            <span className="overview-card-count">
+              {isLoading ? <span className="metric-skeleton-pulse" /> : remindersCount}
+            </span>
           </div>
           <h3 className="overview-card-title">
             <span className="desktop-text">Time-Sensitive Reminders</span>
@@ -154,7 +170,9 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             <div className="overview-icon-box notes-icon-box">
               <FileText size={22} />
             </div>
-            <span className="overview-card-count">{notesCount}</span>
+            <span className="overview-card-count">
+              {isLoading ? <span className="metric-skeleton-pulse" /> : notesCount}
+            </span>
           </div>
           <h3 className="overview-card-title">
             <span className="desktop-text">Personal Notes</span>

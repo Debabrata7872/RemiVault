@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Lock, 
+  Unlock,
   KeyRound, 
   Users, 
   UserPlus, 
@@ -12,7 +13,8 @@ import {
   RotateCcw,
   Sparkles,
   Delete,
-  LogIn
+  LogIn,
+  Loader2
 } from 'lucide-react';
 import type { DeviceProfile } from '../../services/deviceProfiles';
 import { sendEmailOtpApi } from '../../services/api';
@@ -22,7 +24,7 @@ import { BrandLogo } from '../common/BrandLogo';
 interface ProfileLockScreenProps {
   profiles: DeviceProfile[];
   activeProfile: DeviceProfile | null;
-  onUnlockWithPin: (profileId: number, pin: string) => Promise<boolean>;
+  onUnlockWithPin: (profileId: number, pin: string, onVerified?: () => void) => Promise<boolean>;
   onSwitchProfile: (profileId: number) => void;
   onAddNewAccount: () => void;
   onRemoveProfile: (profileId: number) => void;
@@ -54,6 +56,8 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
   // PIN input state
   const [pin, setPin] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [verifyMessage, setVerifyMessage] = useState('Verifying PIN & unlocking vault...');
   const [isShaking, setIsShaking] = useState(false);
   const [pinError, setPinError] = useState<string | null>(null);
 
@@ -86,11 +90,25 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
     if (currentPin.length !== 4) return;
 
     setIsVerifying(true);
+    setIsSuccess(false);
     setPinError(null);
+    setVerifyMessage('Verifying PIN & unlocking vault...');
+
+    // If verification takes longer than 1.1s (e.g. cloud latency), show credentials progress
+    const slowTimer = window.setTimeout(() => {
+      setVerifyMessage('Fetching credentials & opening dashboard...');
+    }, 1100);
 
     try {
-      const isValid = await onUnlockWithPin(targetProfile.id, currentPin);
+      const isValid = await onUnlockWithPin(targetProfile.id, currentPin, () => {
+        window.clearTimeout(slowTimer);
+        setIsSuccess(true);
+        setVerifyMessage('Access Granted • Opening Dashboard...');
+      });
+
       if (!isValid) {
+        window.clearTimeout(slowTimer);
+        setIsSuccess(false);
         setIsShaking(true);
         setPinError('Incorrect PIN. Try again, or use Forgot PIN / Password below.');
         setTimeout(() => {
@@ -99,7 +117,9 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
         }, 500);
       }
     } catch (err: unknown) {
+      window.clearTimeout(slowTimer);
       const e = err as Error;
+      setIsSuccess(false);
       setIsShaking(true);
       setPinError(e.message || 'Error verifying PIN');
       setTimeout(() => {
@@ -107,6 +127,7 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
         setPin('');
       }, 500);
     } finally {
+      window.clearTimeout(slowTimer);
       setIsVerifying(false);
     }
   }, [targetProfile, onUnlockWithPin]);
@@ -116,6 +137,9 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
     if (view !== 'pin') return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore key events while verifying or in transition
+      if (isVerifying || isSuccess) return;
+
       // Don't intercept if an input or textarea is active
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
         return;
@@ -303,8 +327,14 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
                   className="profile-lock-avatar"
                   bgColor={targetProfile.avatarBg || 'var(--primary-gradient)'}
                 />
-                <div className="profile-lock-badge">
-                  <Lock size={12} />
+                <div className={`profile-lock-badge ${isSuccess ? 'success' : isVerifying ? 'verifying' : ''}`}>
+                  {isSuccess ? (
+                    <Unlock size={12} color="#10b981" />
+                  ) : isVerifying ? (
+                    <Loader2 size={12} className="spin" color="#c084fc" />
+                  ) : (
+                    <Lock size={12} />
+                  )}
                 </div>
               </div>
               <h2 className="profile-lock-user-name">{targetProfile.name}</h2>
@@ -315,24 +345,39 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
             <div className="profile-pin-display-wrapper">
               <div 
                 ref={pinContainerRef}
-                className={`profile-pin-dots-row ${isShaking ? 'shake-animation' : ''}`}
+                className={`profile-pin-dots-row ${isShaking ? 'shake-animation' : ''} ${
+                  isVerifying ? 'verifying' : ''
+                } ${isSuccess ? 'success' : ''}`}
               >
-                {[0, 1, 2, 3].map((idx) => (
-                  <div
-                    key={idx}
-                    className={`profile-pin-slot ${idx < pin.length ? 'filled' : ''} ${
-                      pinError ? 'error' : ''
-                    }`}
-                  >
-                    {idx < pin.length && <div className="profile-pin-dot-fill" />}
-                  </div>
-                ))}
+                {[0, 1, 2, 3].map((idx) => {
+                  const isFilled = idx < pin.length;
+                  return (
+                    <div
+                      key={idx}
+                      className={`profile-pin-slot ${isFilled ? 'filled' : ''} ${
+                        pinError ? 'error' : ''
+                      } ${isVerifying ? 'verifying' : ''} ${isSuccess ? 'success' : ''}`}
+                    >
+                      {isFilled && <div className="profile-pin-dot-fill" />}
+                    </div>
+                  );
+                })}
               </div>
 
               {pinError ? (
                 <div className="profile-pin-feedback error">
                   <AlertCircle size={14} />
                   <span>{pinError}</span>
+                </div>
+              ) : isSuccess ? (
+                <div className="profile-pin-feedback success">
+                  <CheckCircle2 size={14} />
+                  <span>{verifyMessage}</span>
+                </div>
+              ) : isVerifying ? (
+                <div className="profile-pin-feedback verifying">
+                  <Loader2 size={14} className="profile-pin-spinner spin" />
+                  <span>{verifyMessage}</span>
                 </div>
               ) : (
                 <div className="profile-pin-feedback">
@@ -342,14 +387,14 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
             </div>
 
             {/* Interactive Numeric Keypad */}
-            <div className="profile-keypad-grid">
+            <div className={`profile-keypad-grid ${isVerifying || isSuccess ? 'is-disabled' : ''}`}>
               {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
                 <button
                   key={digit}
                   type="button"
                   className="profile-keypad-btn"
                   onClick={() => handleKeypadPress(digit)}
-                  disabled={isVerifying}
+                  disabled={isVerifying || isSuccess}
                 >
                   <span className="keypad-digit">{digit}</span>
                 </button>
@@ -359,7 +404,7 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
                 type="button"
                 className="profile-keypad-btn action-btn"
                 onClick={handleKeypadClear}
-                disabled={pin.length === 0 || isVerifying}
+                disabled={pin.length === 0 || isVerifying || isSuccess}
                 title="Clear PIN"
               >
                 <RotateCcw size={18} />
@@ -369,7 +414,7 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
                 type="button"
                 className="profile-keypad-btn"
                 onClick={() => handleKeypadPress('0')}
-                disabled={isVerifying}
+                disabled={isVerifying || isSuccess}
               >
                 <span className="keypad-digit">0</span>
               </button>
@@ -378,7 +423,7 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
                 type="button"
                 className="profile-keypad-btn action-btn"
                 onClick={handleKeypadBackspace}
-                disabled={pin.length === 0 || isVerifying}
+                disabled={pin.length === 0 || isVerifying || isSuccess}
                 title="Backspace"
               >
                 <Delete size={20} />

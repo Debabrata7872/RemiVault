@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ShieldCheck, ArrowLeft, CheckCircle2, RotateCcw, Delete, X } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, CheckCircle2, RotateCcw, Delete, X, Loader2 } from 'lucide-react';
 import type { DeviceProfile } from '../../services/deviceProfiles';
 
 interface SetProfilePinModalProps {
@@ -197,13 +197,13 @@ export const SetProfilePinModal: React.FC<SetProfilePinModalProps> = ({
         </div>
 
         {/* 4-Slot PIN Visual Dots */}
-        <div className={`pin-onboarding-slots-row ${isShaking ? 'shake-animation' : ''}`}>
+        <div className={`pin-onboarding-slots-row ${isShaking ? 'shake-animation' : ''} ${isSubmitting ? 'submitting' : ''}`}>
           {[0, 1, 2, 3].map((idx) => {
             const isFilled = idx < activeValue.length;
             return (
               <div 
                 key={idx} 
-                className={`pin-onboarding-slot ${isFilled ? 'filled' : ''} ${error ? 'error' : ''} ${isSuccess ? 'success' : ''}`}
+                className={`pin-onboarding-slot ${isFilled ? 'filled' : ''} ${error ? 'error' : ''} ${isSuccess ? 'success' : ''} ${isSubmitting ? 'verifying' : ''}`}
               >
                 {isFilled && <div className="pin-onboarding-dot-fill" />}
               </div>
@@ -214,8 +214,14 @@ export const SetProfilePinModal: React.FC<SetProfilePinModalProps> = ({
         {/* Status / Error Message */}
         <div className="pin-onboarding-feedback">
           {error && <span className="pin-error-text">{error}</span>}
-          {isSuccess && <span className="pin-success-text">Saving to account...</span>}
-          {!error && !isSuccess && (
+          {isSubmitting && (
+            <span className="pin-loading-text">
+              <Loader2 size={13} className="spin" />
+              <span>Saving &amp; securing PIN...</span>
+            </span>
+          )}
+          {isSuccess && !isSubmitting && <span className="pin-success-text">PIN configured successfully!</span>}
+          {!error && !isSuccess && !isSubmitting && (
             <span className="pin-hint-text">
               {step === 'create' ? 'Step 1 of 2: Choose PIN' : 'Step 2 of 2: Confirm PIN'}
             </span>

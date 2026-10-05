@@ -50,7 +50,7 @@ interface AuthContextType {
   logout: (removeFromDevice?: boolean) => Promise<void>;
   clearError: () => void;
   // Profile Lock & Device Profile actions
-  unlockWithPin: (profileId: number, pin: string) => Promise<boolean>;
+  unlockWithPin: (profileId: number, pin: string, onVerified?: () => void) => Promise<boolean>;
   setupPin: (pin: string, currentPin?: string) => Promise<void>;
   dismissPinSetup: () => void;
   switchProfile: (profileId: number) => void;
@@ -347,7 +347,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
    * This guarantees that a PIN changed on Desktop immediately invalidates the old PIN on Phone (and vice versa).
    * Falls back to local cryptographic hash only when offline or server unreachable.
    */
-  const unlockWithPin = async (profileId: number, pin: string): Promise<boolean> => {
+  const unlockWithPin = async (profileId: number, pin: string, onVerified?: () => void): Promise<boolean> => {
     const cleanPin = pin.trim();
     const profiles = getDeviceProfiles();
     const targetProfile = profiles.find((p) => 
@@ -383,6 +383,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
             setToken(active.token);
             setStoredToken(active.token);
+          }
+
+          // Allow UI to display verified/access granted state before dismissing lock
+          if (onVerified) {
+            onVerified();
+            await new Promise((resolve) => setTimeout(resolve, 380));
           }
 
           setIsLocked(false);
@@ -425,6 +431,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
         setToken(active.token);
         setStoredToken(active.token);
+      }
+
+      if (onVerified) {
+        onVerified();
+        await new Promise((resolve) => setTimeout(resolve, 380));
       }
 
       setIsLocked(false);
