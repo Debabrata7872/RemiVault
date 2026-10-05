@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  Shield, 
   Lock, 
   KeyRound, 
   Users, 
@@ -18,6 +17,7 @@ import {
 import type { DeviceProfile } from '../../services/deviceProfiles';
 import { sendEmailOtpApi } from '../../services/api';
 import { UserAvatar } from '../common/UserAvatar';
+import { BrandLogo } from '../common/BrandLogo';
 
 interface ProfileLockScreenProps {
   profiles: DeviceProfile[];
@@ -289,9 +289,7 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
           <div className="profile-lock-card">
             {/* Top brand header */}
             <div className="profile-lock-brand">
-              <div className="profile-lock-brand-icon">
-                <Shield size={20} />
-              </div>
+              <BrandLogo size={28} />
               <span className="profile-lock-brand-name">RemiVault Security</span>
             </div>
 

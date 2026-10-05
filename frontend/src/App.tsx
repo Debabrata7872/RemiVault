@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Shield, 
+  Shield,
   CheckCircle2, 
   Bell, 
   Calendar, 
@@ -22,6 +22,7 @@ import type { HealthResponse } from './services/api';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthModal } from './components/auth/AuthModal';
+import { BrandLogo } from './components/common/BrandLogo';
 import { SetProfilePinModal } from './components/auth/SetProfilePinModal';
 import { ProfileLockScreen } from './components/auth/ProfileLockScreen';
 import { SettingsModal } from './components/settings/SettingsModal';
@@ -165,13 +166,12 @@ const RemiVaultApp: React.FC = () => {
       {/* Top Navigation */}
       <nav className={`navbar ${isLocked ? 'navbar-locked' : ''}`}>
         <div className="navbar-brand-row">
-          <div className="brand" onClick={() => setWorkspaceTab('overview')} style={{ cursor: 'pointer' }}>
-            <div className="brand-icon">
-              <Shield size={24} />
-            </div>
-            <span className="brand-name">RemiVault</span>
-            <span className="brand-version">v0.2.0</span>
-          </div>
+          <BrandLogo 
+            size={38}
+            showText={true}
+            badgeText="v0.2.0"
+            onClick={() => setWorkspaceTab('overview')}
+          />
 
           <span className={`badge ${health?.status === 'ok' ? 'badge-success' : 'badge-danger'} nav-status-badge`}>
             <span className={`pulse-dot ${health?.status === 'ok' ? 'online' : 'offline'}`}></span>
