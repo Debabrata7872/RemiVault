@@ -20,5 +20,5 @@
 7. [x] **Professional Email for Sending OTPs**: Transitioned to Brevo transactional email relay with TLS encryption, 300 free emails/day quota, verified sender, and cross-platform (local & online server) support. *(Completed)*
 8. [ ] **Local Storage Caching & Optimistic UI**: Make saves, updates, and data fetching instantaneous via cache-first/SWR local storage strategies.
 9. [ ] **Task & Work Notifications (Permission Flow & Active Alerts)**: Friendly permission request flow explaining value, followed by active notifications after access is allowed (welcome alert, due task/reminder notifications, document expiration countdowns, and sound chimes).
-10. [ ] **Admin Panel**: Role-based access exclusively for `debabratasahoo499905@gmail.com` (hidden and off for all other users), user management, system health metrics, and activity logs.
+10. [ ] **Admin Panel**: Role-based access exclusively for authorized super admin (hidden and off for all other users), user management, system health metrics, and activity logs.
 11. [ ] **Mobile App (.APK)**: Package the web application into an installable Android APK via Capacitor / Android CLI.

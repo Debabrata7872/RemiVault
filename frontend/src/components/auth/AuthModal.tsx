@@ -34,7 +34,7 @@ type Step = 'details' | 'otp' | 'password';
 
 /**
  * Mask email or phone number for secure preview
- * Example: debabratasahoo499905@gmail.com -> de.....05@gmail.com
+ * Example: user.secure@gmail.com -> us.....re@gmail.com
  * Example: 8512345631 -> 85******31
  */
 function maskIdentifier(val: string): string {

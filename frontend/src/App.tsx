@@ -32,6 +32,7 @@ import { ImportantDatesSection } from './components/importantDates/ImportantDate
 import { VaultSection } from './components/vault/VaultSection';
 import { UserOverview } from './components/dashboard/UserOverview';
 import { AdminDiagnosticsModal } from './components/admin/AdminDiagnosticsModal';
+import { isSuperAdmin } from './utils/admin';
 import { fetchVaultEntriesApi } from './services/vault';
 import { fetchImportantDatesApi } from './services/importantDates';
 import { fetchRemindersApi } from './services/reminders';
@@ -65,9 +66,8 @@ const RemiVaultApp: React.FC = () => {
   const [latency, setLatency] = useState<number | null>(null);
   const [isAdminDiagOpen, setIsAdminDiagOpen] = useState<boolean>(false);
 
-  // Super Admin Authorization (Exclusive to debabratasahoo499905@gmail.com)
-  const ADMIN_EMAIL = 'debabratasahoo499905@gmail.com';
-  const isAdmin = Boolean(user?.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim());
+  // Super Admin Authorization
+  const isAdmin = isSuperAdmin(user?.email);
 
   // Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);

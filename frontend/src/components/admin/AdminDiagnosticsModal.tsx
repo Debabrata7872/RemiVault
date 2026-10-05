@@ -17,6 +17,7 @@ import {
   Activity
 } from 'lucide-react';
 import type { HealthResponse, User } from '../../services/api';
+import { isSuperAdmin } from '../../utils/admin';
 
 interface AdminDiagnosticsModalProps {
   isOpen: boolean;
@@ -41,10 +42,7 @@ export const AdminDiagnosticsModal: React.FC<AdminDiagnosticsModalProps> = ({
   user,
   maskedToken,
 }) => {
-  const ADMIN_EMAIL = 'debabratasahoo499905@gmail.com';
-  const isAdmin = Boolean(user?.email && user.email.toLowerCase().trim() === ADMIN_EMAIL);
-
-  if (!isOpen || !isAdmin) return null;
+  if (!isOpen || !isSuperAdmin(user?.email)) return null;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>

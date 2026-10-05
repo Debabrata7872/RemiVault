@@ -66,8 +66,8 @@
     - Audio chime for completed tasks or urgent alerts.
     - In-app notification center / toast banners for real-time foreground updates.
 
-- [ ] **10. Admin Panel (Exclusive to `debabratasahoo499905@gmail.com`)**
-  - Dedicated admin controls and diagnostics, hidden and inaccessible to regular users, restricted strictly to `debabratasahoo499905@gmail.com`.
+- [ ] **10. Admin Panel (Exclusive to Super Admin)**
+  - Dedicated admin controls and diagnostics, hidden and inaccessible to regular users, restricted strictly to the authorized super-admin account.
   - User accounts overview, active sessions, and verification statuses.
   - Real-time system health metrics, database status, and activity telemetry.
 
