@@ -642,13 +642,14 @@ export const ImportantDatesSection: React.FC = () => {
               {/* Title Input */}
               <div className="dates-form-group">
                 <label htmlFor={titleInputId} className="dates-form-label">
-                  Event / Document Title <span style={{ color: '#f43f5e' }}>*</span>
+                  <span className="desktop-text">Event / Document Title</span>
+                  <span className="mobile-text">Title</span> <span style={{ color: '#f43f5e' }}>*</span>
                 </label>
                 <input
                   id={titleInputId}
                   type="text"
                   className="dates-form-input"
-                  placeholder="e.g. US Passport Expiration, Wedding Anniversary, Car Insurance..."
+                  placeholder="e.g. Passport Expiration, Anniversary, Insurance..."
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   required
@@ -660,7 +661,8 @@ export const ImportantDatesSection: React.FC = () => {
               <div className="dates-form-row-2">
                 <div className="dates-form-group">
                   <label htmlFor={targetDateInputId} className="dates-form-label">
-                    Target Date <span style={{ color: '#f43f5e' }}>*</span>
+                    <span className="desktop-text">Target Date</span>
+                    <span className="mobile-text">Date</span> <span style={{ color: '#f43f5e' }}>*</span>
                   </label>
                   <input
                     id={targetDateInputId}
@@ -674,7 +676,10 @@ export const ImportantDatesSection: React.FC = () => {
 
                 {/* Recurrence Selector */}
                 <div className="dates-form-group">
-                  <label className="dates-form-label">Recurrence Cycle</label>
+                  <label className="dates-form-label">
+                    <span className="desktop-text">Recurrence Cycle</span>
+                    <span className="mobile-text">Recurrence</span>
+                  </label>
                   <select
                     className="dates-form-select"
                     value={formRecurrence}
@@ -690,7 +695,10 @@ export const ImportantDatesSection: React.FC = () => {
               {/* Notification Notice Window */}
               <div className="dates-form-row-2">
                 <div className="dates-form-group">
-                  <label className="dates-form-label">Urgency Alert Threshold</label>
+                  <label className="dates-form-label">
+                    <span className="desktop-text">Urgency Alert Threshold</span>
+                    <span className="mobile-text">Alert Threshold</span>
+                  </label>
                   <select
                     className="dates-form-select"
                     value={formNotifyDays}
@@ -715,7 +723,8 @@ export const ImportantDatesSection: React.FC = () => {
                     />
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <Pin size={15} color={formIsPinned ? '#f59e0b' : 'var(--text-muted)'} />
-                      <span>Pin to top of workspace</span>
+                      <span className="desktop-text">Pin to top of workspace</span>
+                      <span className="mobile-text">Pin to top</span>
                     </div>
                   </label>
                 </div>
@@ -724,7 +733,8 @@ export const ImportantDatesSection: React.FC = () => {
               {/* Notes */}
               <div className="dates-form-group">
                 <label htmlFor={notesInputId} className="dates-form-label">
-                  Notes &amp; Document Numbers (Optional)
+                  <span className="desktop-text">Notes &amp; Document Numbers (Optional)</span>
+                  <span className="mobile-text">Notes (Optional)</span>
                 </label>
                 <textarea
                   id={notesInputId}
@@ -759,7 +769,8 @@ export const ImportantDatesSection: React.FC = () => {
                   ) : (
                     <>
                       <Check size={16} />
-                      <span>{editingDate ? 'Save Changes' : 'Record Date'}</span>
+                      <span className="desktop-text">{editingDate ? 'Save Changes' : 'Record Date'}</span>
+                      <span className="mobile-text">Save</span>
                     </>
                   )}
                 </button>

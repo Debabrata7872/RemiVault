@@ -323,25 +323,25 @@ export const NotesSection: React.FC = () => {
       {/* Create / Edit Note Modal */}
       {isModalOpen && (
         <div className="modal-backdrop" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px' }}>
-            <div className="modal-header">
-              <div className="modal-title-group">
-                <div className="modal-badge-icon">
-                  <FileText size={20} />
-                </div>
-                <div>
-                  <h2 className="modal-title">{editingNote ? 'Edit Note' : 'Create Personal Note'}</h2>
-                  <p className="modal-subtitle">Automatically associated with your user ID.</p>
-                </div>
+          <div className="modal-content notes-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px' }}>
+            <div className="notes-modal-header">
+              <div className="notes-modal-title-group">
+                <FileText size={20} color="#6366f1" />
+                <h3>
+                  <span className="desktop-text">{editingNote ? 'Edit Note' : 'Create Personal Note'}</span>
+                  <span className="mobile-text">{editingNote ? 'Edit Note' : 'Add Note'}</span>
+                </h3>
               </div>
-              <button className="modal-close-btn" onClick={closeModal}>
-                <X size={20} />
+              <button className="notes-modal-close-btn" onClick={closeModal} aria-label="Close modal">
+                <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleSaveNote} className="auth-form">
               <div className="form-group">
-                <label className="form-label">Note Title</label>
+                <label className="form-label">
+                  <span className="desktop-text">Note </span>Title
+                </label>
                 <input
                   type="text"
                   className="form-input"
@@ -367,7 +367,9 @@ export const NotesSection: React.FC = () => {
 
               {/* Color Selection Chips */}
               <div className="form-group">
-                <label className="form-label">Color Theme</label>
+                <label className="form-label">
+                  Color<span className="desktop-text"> Theme</span>
+                </label>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   {COLOR_OPTIONS.map((c) => (
                     <button
@@ -393,16 +395,24 @@ export const NotesSection: React.FC = () => {
                   style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#4f46e5' }}
                 />
                 <label htmlFor="pin-checkbox" style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                  Pin this note to the top of the dashboard
+                  <span className="desktop-text">Pin this note to the top of the dashboard</span>
+                  <span className="mobile-text">Pin to top</span>
                 </label>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+              <div className="modal-footer notes-modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={closeModal}>
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : editingNote ? 'Save Changes' : 'Create Note'}
+                  {isSubmitting ? (
+                    'Saving...'
+                  ) : (
+                    <>
+                      <span className="desktop-text">{editingNote ? 'Save Changes' : 'Create Note'}</span>
+                      <span className="mobile-text">Save</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

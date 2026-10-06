@@ -109,6 +109,7 @@ export const RemindersSection: React.FC = () => {
   const [formDescription, setFormDescription] = useState<string>('');
   const [formRemindAt, setFormRemindAt] = useState<string>('');
   const [formPriority, setFormPriority] = useState<ReminderPriority>('medium');
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Snooze dropdown menu active ID
@@ -150,6 +151,7 @@ export const RemindersSection: React.FC = () => {
     setEditingReminder(null);
     setFormTitle('');
     setFormDescription('');
+    setSelectedPreset(null);
     // Default to 2 hours from now rounded to next 15 min
     const defaultTime = new Date();
     defaultTime.setHours(defaultTime.getHours() + 2);
@@ -165,12 +167,14 @@ export const RemindersSection: React.FC = () => {
     setFormDescription(reminder.description || '');
     setFormRemindAt(toLocalDatetimeInput(new Date(reminder.remind_at)));
     setFormPriority(reminder.priority);
+    setSelectedPreset(null);
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingReminder(null);
+    setSelectedPreset(null);
   };
 
   const applyPresetTime = (hoursFromNow: number) => {
@@ -178,6 +182,7 @@ export const RemindersSection: React.FC = () => {
     d.setHours(d.getHours() + hoursFromNow);
     d.setMinutes(0);
     setFormRemindAt(toLocalDatetimeInput(d));
+    setSelectedPreset(`+${hoursFromNow}h`);
   };
 
   const applyTomorrowMorning = () => {
@@ -185,6 +190,7 @@ export const RemindersSection: React.FC = () => {
     d.setDate(d.getDate() + 1);
     d.setHours(9, 0, 0, 0);
     setFormRemindAt(toLocalDatetimeInput(d));
+    setSelectedPreset('tomorrow');
   };
 
   const applyWeekend = () => {
@@ -194,6 +200,7 @@ export const RemindersSection: React.FC = () => {
     d.setDate(d.getDate() + diff);
     d.setHours(10, 0, 0, 0);
     setFormRemindAt(toLocalDatetimeInput(d));
+    setSelectedPreset('weekend');
   };
 
   const handleSaveReminder = async (e: React.FormEvent) => {
@@ -627,33 +634,31 @@ export const RemindersSection: React.FC = () => {
       {isModalOpen && (
         <div className="modal-backdrop" onClick={closeModal}>
           <div className="modal-content reminder-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '620px', width: '100%' }}>
-            <div className="modal-header">
-              <div className="modal-title-group">
-                <div className="modal-badge-icon" style={{ color: '#f59e0b', background: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)' }}>
-                  <Bell size={20} />
-                </div>
-                <div>
-                  <h2 className="modal-title">
-                    {editingReminder ? 'Edit Reminder' : 'Schedule New Reminder'}
-                  </h2>
-                  <p className="modal-subtitle">UTC-normalized time-sensitive notifications &amp; alerts.</p>
-                </div>
+            <div className="reminder-modal-header">
+              <div className="reminder-modal-title-group">
+                <Bell size={20} color="#f59e0b" />
+                <h3>
+                  <span className="desktop-text">{editingReminder ? 'Edit Reminder' : 'Schedule New Reminder'}</span>
+                  <span className="mobile-text">{editingReminder ? 'Edit Reminder' : 'Add Reminder'}</span>
+                </h3>
               </div>
-              <button className="modal-close-btn" onClick={closeModal} aria-label="Close modal">
-                <X size={20} />
+              <button className="reminder-modal-close-btn" onClick={closeModal} aria-label="Close modal">
+                <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleSaveReminder} className="reminder-form" autoComplete="off">
               <div className="form-group">
-                <label className="form-label" htmlFor={titleInputId}>Reminder Title *</label>
+                <label className="form-label" htmlFor={titleInputId}>
+                  <span className="desktop-text">Reminder </span>Title *
+                </label>
                 <div className="input-with-icon">
                   <Tag size={16} className="input-icon" />
                   <input
                     id={titleInputId}
                     type="text"
                     className="form-input"
-                    placeholder="e.g. Renew Passport & Visa, Submit Tax Return..."
+                    placeholder="e.g. Renew Passport, Tax Return, Meeting..."
                     value={formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
                     autoComplete="off"
@@ -666,7 +671,9 @@ export const RemindersSection: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor={remindAtInputId}>Trigger Date &amp; Time (UTC Normalized) *</label>
+                <label className="form-label" htmlFor={remindAtInputId}>
+                  Date &amp; Time <span className="desktop-text">(UTC Normalized)</span> *
+                </label>
                 <div className="input-with-icon">
                   <Clock size={16} className="input-icon" />
                   <input
@@ -674,18 +681,45 @@ export const RemindersSection: React.FC = () => {
                     type="datetime-local"
                     className="form-input"
                     value={formRemindAt}
-                    onChange={(e) => setFormRemindAt(e.target.value)}
+                    onChange={(e) => {
+                      setFormRemindAt(e.target.value);
+                      setSelectedPreset(null);
+                    }}
                     required
                   />
                 </div>
                 
                 {/* Quick Presets */}
                 <div className="datetime-presets">
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>Presets:</span>
-                  <button type="button" className="preset-pill" onClick={() => applyPresetTime(1)}>+1 Hour</button>
-                  <button type="button" className="preset-pill" onClick={() => applyPresetTime(3)}>+3 Hours</button>
-                  <button type="button" className="preset-pill" onClick={applyTomorrowMorning}>Tomorrow 9 AM</button>
-                  <button type="button" className="preset-pill" onClick={applyWeekend}>This Weekend</button>
+                  <span className="presets-label">Presets:</span>
+                  <button 
+                    type="button" 
+                    className={`preset-pill ${selectedPreset === '+1h' ? 'selected' : ''}`} 
+                    onClick={() => applyPresetTime(1)}
+                  >
+                    +1 Hour
+                  </button>
+                  <button 
+                    type="button" 
+                    className={`preset-pill ${selectedPreset === '+3h' ? 'selected' : ''}`} 
+                    onClick={() => applyPresetTime(3)}
+                  >
+                    +3 Hours
+                  </button>
+                  <button 
+                    type="button" 
+                    className={`preset-pill ${selectedPreset === 'tomorrow' ? 'selected' : ''}`} 
+                    onClick={applyTomorrowMorning}
+                  >
+                    Tomorrow 9 AM
+                  </button>
+                  <button 
+                    type="button" 
+                    className={`preset-pill ${selectedPreset === 'weekend' ? 'selected' : ''}`} 
+                    onClick={applyWeekend}
+                  >
+                    This Weekend
+                  </button>
                 </div>
               </div>
 
@@ -699,16 +733,11 @@ export const RemindersSection: React.FC = () => {
                       <button
                         key={p}
                         type="button"
-                        className={`priority-btn ${isSelected ? 'selected' : ''}`}
-                        style={{
-                          borderColor: isSelected ? cfg.color : 'rgba(255, 255, 255, 0.08)',
-                          background: isSelected ? cfg.bg : 'rgba(255, 255, 255, 0.03)',
-                          color: isSelected ? cfg.color : 'var(--text-secondary)',
-                        }}
+                        className={`priority-btn priority-btn-${p} ${isSelected ? 'selected' : ''}`}
                         onClick={() => setFormPriority(p)}
                       >
                         <span className="priority-dot" style={{ background: cfg.color }}></span>
-                        {cfg.label}
+                        <span>{cfg.label}</span>
                       </button>
                     );
                   })}
@@ -716,7 +745,9 @@ export const RemindersSection: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor={descriptionInputId}>Notes / Details (Optional)</label>
+                <label className="form-label" htmlFor={descriptionInputId}>
+                  Notes <span className="desktop-text">/ Details</span> (Optional)
+                </label>
                 <textarea
                   id={descriptionInputId}
                   className="form-textarea"
@@ -733,8 +764,18 @@ export const RemindersSection: React.FC = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={isSubmitting || !formTitle.trim() || !formRemindAt}>
-                  <Sparkles size={16} />
-                  <span>{isSubmitting ? 'Saving...' : editingReminder ? 'Update Reminder' : 'Schedule Reminder'}</span>
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw size={15} className="spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} />
+                      <span className="desktop-text">{editingReminder ? 'Update Reminder' : 'Schedule Reminder'}</span>
+                      <span className="mobile-text">Save</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

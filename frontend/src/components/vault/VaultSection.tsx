@@ -837,7 +837,9 @@ export const VaultSection: React.FC = () => {
             <form onSubmit={handleSaveEntry} className="vault-modal-form">
               {/* Category Selector Grid */}
               <div className="vault-form-group">
-                <label className="vault-form-label">Secret Category</label>
+                <label className="vault-form-label">
+                  <span className="desktop-text">Secret </span>Category
+                </label>
                 <div className="vault-category-select-grid">
                   {(Object.keys(CATEGORY_CONFIG) as VaultCategory[]).map((catKey) => {
                     const meta = CATEGORY_CONFIG[catKey];
@@ -865,13 +867,13 @@ export const VaultSection: React.FC = () => {
               {/* Title */}
               <div className="vault-form-group">
                 <label htmlFor={titleInputId} className="vault-form-label">
-                  Title / Service Name <span style={{ color: '#f43f5e' }}>*</span>
+                  <span className="desktop-text">Title / </span>Service Name <span style={{ color: '#f43f5e' }}>*</span>
                 </label>
                 <input
                   id={titleInputId}
                   type="text"
                   className="vault-form-input"
-                  placeholder="e.g. GitHub Personal Access Token, AWS Console, Main Banking..."
+                  placeholder="e.g. GitHub, AWS, Banking, Email..."
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   required
@@ -883,7 +885,8 @@ export const VaultSection: React.FC = () => {
               <div className="vault-form-row-2">
                 <div className="vault-form-group">
                   <label htmlFor={usernameInputId} className="vault-form-label">
-                    Username / Email / Account ID
+                    <span className="desktop-text">Username / Email / Account ID</span>
+                    <span className="mobile-text">Username / Email</span>
                   </label>
                   <input
                     id={usernameInputId}
@@ -897,7 +900,8 @@ export const VaultSection: React.FC = () => {
 
                 <div className="vault-form-group">
                   <label htmlFor={urlInputId} className="vault-form-label">
-                    Website or Service URL
+                    <span className="desktop-text">Website or Service URL</span>
+                    <span className="mobile-text">Website URL</span>
                   </label>
                   <input
                     id={urlInputId}
@@ -914,7 +918,8 @@ export const VaultSection: React.FC = () => {
               <div className="vault-form-group">
                 <div className="vault-pwd-form-header">
                   <label htmlFor={passwordInputId} className="vault-form-label">
-                    Password / Secret Key <span style={{ color: '#f43f5e' }}>*</span>
+                    <span className="desktop-text">Password / Secret Key</span>
+                    <span className="mobile-text">Password</span> <span style={{ color: '#f43f5e' }}>*</span>
                   </label>
                   <button
                     type="button"
@@ -922,7 +927,8 @@ export const VaultSection: React.FC = () => {
                     onClick={() => setFormPassword(generatePassword(22))}
                   >
                     <Sparkles size={13} />
-                    <span>Generate Strong Password</span>
+                    <span className="desktop-text">Generate Strong Password</span>
+                    <span className="mobile-text">Generate</span>
                   </button>
                 </div>
 
@@ -958,7 +964,8 @@ export const VaultSection: React.FC = () => {
                   />
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <Star size={15} color={formIsFavorite ? '#f59e0b' : 'var(--text-muted)'} fill={formIsFavorite ? '#f59e0b' : 'none'} />
-                    <span>Add to Starred Favorites for quick access</span>
+                    <span className="desktop-text">Add to Starred Favorites for quick access</span>
+                    <span className="mobile-text">Starred Favorite</span>
                   </div>
                 </label>
               </div>
@@ -966,7 +973,8 @@ export const VaultSection: React.FC = () => {
               {/* Notes */}
               <div className="vault-form-group">
                 <label htmlFor={notesInputId} className="vault-form-label">
-                  Secure Notes / Recovery Codes (Optional)
+                  <span className="desktop-text">Secure Notes / Recovery Codes (Optional)</span>
+                  <span className="mobile-text">Notes (Optional)</span>
                 </label>
                 <textarea
                   id={notesInputId}
@@ -1001,7 +1009,8 @@ export const VaultSection: React.FC = () => {
                   ) : (
                     <>
                       <Check size={16} />
-                      <span>{editingEntry ? 'Update Password' : 'Save Password'}</span>
+                      <span className="desktop-text">{editingEntry ? 'Update Password' : 'Save Password'}</span>
+                      <span className="mobile-text">Save</span>
                     </>
                   )}
                 </button>
