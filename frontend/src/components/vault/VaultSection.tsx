@@ -37,6 +37,8 @@ import type {
   PasswordStrength,
   VaultCounts
 } from '../../services/vault';
+import { VaultSkeleton } from '../common/skeletons';
+import { usePreloadData } from '../../context/PreloadDataContext';
 
 interface CategoryMeta {
   label: string;
@@ -119,23 +121,30 @@ function generatePassword(length = 20, useUpper = true, useLower = true, useDigi
 }
 
 export const VaultSection: React.FC = () => {
-  const [entries, setEntries] = useState<VaultEntry[]>([]);
-  const [counts, setCounts] = useState<VaultCounts>({
-    total: 0,
-    favorites: 0,
-    logins: 0,
-    api_keys: 0,
-    cards: 0,
-    servers: 0,
-    weak_passwords: 0,
-  });
-  const [loading, setLoading] = useState<boolean>(true);
+  const {
+    vaultEntries: preloadedEntries,
+    vaultCounts: preloadedCounts,
+    vaultLoaded,
+  } = usePreloadData();
+
+  const [entries, setEntries] = useState<VaultEntry[]>(preloadedEntries);
+  const [counts, setCounts] = useState<VaultCounts>(preloadedCounts);
+  const [loading, setLoading] = useState<boolean>(!vaultLoaded && entries.length === 0);
   const [error, setError] = useState<string | null>(null);
 
   // Filters
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [onlyFavorites, setOnlyFavorites] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Sync with preloaded data when loaded and no custom filters are applied
+  useEffect(() => {
+    if (vaultLoaded && activeCategory === 'all' && !onlyFavorites && searchQuery === '') {
+      setEntries(preloadedEntries);
+      setCounts(preloadedCounts);
+      setLoading(false);
+    }
+  }, [vaultLoaded, preloadedEntries, preloadedCounts, activeCategory, onlyFavorites, searchQuery]);
 
   // Password visibility tracking by entry ID
   const [visiblePasswordIds, setVisiblePasswordIds] = useState<Set<number>>(new Set());
@@ -533,10 +542,7 @@ export const VaultSection: React.FC = () => {
 
       {/* Vault Cards Grid */}
       {loading && entries.length === 0 ? (
-        <div className="vault-empty-box">
-          <RefreshCw size={28} className="spin" color="#a855f7" />
-          <p>Loading your saved passwords...</p>
-        </div>
+        <VaultSkeleton />
       ) : entries.length === 0 ? (
         <div className="vault-empty-box">
           <div className="vault-empty-icon">

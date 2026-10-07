@@ -29,6 +29,8 @@ import type {
   ReminderPriority,
   ReminderCounts
 } from '../../services/reminders';
+import { RemindersSkeleton } from '../common/skeletons';
+import { usePreloadData } from '../../context/PreloadDataContext';
 
 const PRIORITY_CONFIG: Record<ReminderPriority, { label: string; color: string; bg: string; border: string }> = {
   urgent: { label: 'Urgent', color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.12)', border: 'rgba(244, 63, 94, 0.3)' },
@@ -86,21 +88,30 @@ function toLocalDatetimeInput(date: Date): string {
 }
 
 export const RemindersSection: React.FC = () => {
-  const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [counts, setCounts] = useState<ReminderCounts>({
-    total: 0,
-    pending: 0,
-    upcoming: 0,
-    overdue: 0,
-    completed: 0,
-  });
-  const [loading, setLoading] = useState<boolean>(true);
+  const {
+    reminders: preloadedReminders,
+    reminderCounts: preloadedCounts,
+    remindersLoaded,
+  } = usePreloadData();
+
+  const [reminders, setReminders] = useState<Reminder[]>(preloadedReminders);
+  const [counts, setCounts] = useState<ReminderCounts>(preloadedCounts);
+  const [loading, setLoading] = useState<boolean>(!remindersLoaded && reminders.length === 0);
   const [error, setError] = useState<string | null>(null);
 
   // Filters
   const [activeTab, setActiveTab] = useState<'all' | 'upcoming' | 'overdue' | 'completed'>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Sync with preloaded data when loaded and no custom filters are applied
+  useEffect(() => {
+    if (remindersLoaded && activeTab === 'all' && priorityFilter === 'all' && searchQuery === '') {
+      setReminders(preloadedReminders);
+      setCounts(preloadedCounts);
+      setLoading(false);
+    }
+  }, [remindersLoaded, preloadedReminders, preloadedCounts, activeTab, priorityFilter, searchQuery]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -472,10 +483,7 @@ export const RemindersSection: React.FC = () => {
 
       {/* Reminders List */}
       {loading && reminders.length === 0 ? (
-        <div className="loading-state">
-          <RefreshCw size={24} className="spin" color="#818cf8" />
-          <p>Loading your secure reminders...</p>
-        </div>
+        <RemindersSkeleton />
       ) : reminders.length === 0 ? (
         <div className="card reminders-empty-state">
           <div className="reminders-empty-icon">

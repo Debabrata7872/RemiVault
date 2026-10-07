@@ -34,10 +34,7 @@ import { VaultSection } from './components/vault/VaultSection';
 import { UserOverview } from './components/dashboard/UserOverview';
 import { AdminDiagnosticsModal } from './components/admin/AdminDiagnosticsModal';
 import { isSuperAdmin } from './utils/admin';
-import { fetchVaultEntriesApi } from './services/vault';
-import { fetchImportantDatesApi } from './services/importantDates';
-import { fetchRemindersApi } from './services/reminders';
-import { fetchNotesApi } from './services/notes';
+import { PreloadDataProvider, usePreloadData } from './context/PreloadDataContext';
 import './App.css';
 
 type WorkspaceTab = 'overview' | 'vault' | 'dates' | 'reminders' | 'notes';
@@ -83,14 +80,8 @@ const RemiVaultApp: React.FC = () => {
   // Active Workspace Tab
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('overview');
 
-  // Dashboard Summary Metrics
-  const [vaultCount, setVaultCount] = useState<number>(0);
-  const [datesCount, setDatesCount] = useState<number>(0);
-  const [remindersCount, setRemindersCount] = useState<number>(0);
-  const [notesCount, setNotesCount] = useState<number>(0);
-  const [urgentDatesCount, setUrgentDatesCount] = useState<number>(0);
-  const [upcomingRemindersCount, setUpcomingRemindersCount] = useState<number>(0);
-  const [isSummaryLoading, setIsSummaryLoading] = useState<boolean>(true);
+  // Preloaded In-Memory Data Context
+  const { counts, isOverviewLoading } = usePreloadData();
 
   const fetchStatus = useCallback(async () => {
     setHealthLoading(true);
@@ -112,48 +103,9 @@ const RemiVaultApp: React.FC = () => {
     }
   }, []);
 
-  // Fetch summary counts for the user dashboard
-  const loadDashboardSummary = useCallback(async () => {
-    if (!user) return;
-    setIsSummaryLoading(true);
-    try {
-      const [vaultData, datesData, remindersData, notesData] = await Promise.allSettled([
-        fetchVaultEntriesApi(),
-        fetchImportantDatesApi(),
-        fetchRemindersApi(),
-        fetchNotesApi(),
-      ]);
-
-      if (vaultData.status === 'fulfilled') {
-        setVaultCount(vaultData.value.counts.total);
-      }
-      if (datesData.status === 'fulfilled') {
-        setDatesCount(datesData.value.counts.total);
-        setUrgentDatesCount(datesData.value.counts.urgent);
-      }
-      if (remindersData.status === 'fulfilled') {
-        setRemindersCount(remindersData.value.counts.total);
-        setUpcomingRemindersCount(remindersData.value.counts.upcoming);
-      }
-      if (notesData.status === 'fulfilled') {
-        setNotesCount(notesData.value.length);
-      }
-    } catch {
-      // Quiet fallback
-    } finally {
-      setIsSummaryLoading(false);
-    }
-  }, [user]);
-
   useEffect(() => {
     fetchStatus();
   }, [fetchStatus]);
-
-  useEffect(() => {
-    if (user) {
-      loadDashboardSummary();
-    }
-  }, [user, loadDashboardSummary]);
 
   const openAuth = (mode: 'login' | 'register') => {
     setAuthModalMode(mode);
@@ -346,13 +298,13 @@ const RemiVaultApp: React.FC = () => {
             <UserOverview 
               userName={user.name}
               onNavigate={(tab) => setWorkspaceTab(tab)}
-              vaultCount={vaultCount}
-              datesCount={datesCount}
-              remindersCount={remindersCount}
-              notesCount={notesCount}
-              urgentDatesCount={urgentDatesCount}
-              upcomingRemindersCount={upcomingRemindersCount}
-              isLoading={isSummaryLoading}
+              vaultCount={counts.vault}
+              datesCount={counts.dates}
+              remindersCount={counts.reminders}
+              notesCount={counts.notes}
+              urgentDatesCount={counts.urgent_dates}
+              upcomingRemindersCount={counts.upcoming_reminders}
+              isLoading={isOverviewLoading}
             />
           )}
 
@@ -522,10 +474,10 @@ const RemiVaultApp: React.FC = () => {
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        vaultCount={vaultCount}
-        datesCount={datesCount}
-        remindersCount={remindersCount}
-        notesCount={notesCount}
+        vaultCount={counts.vault}
+        datesCount={counts.dates}
+        remindersCount={counts.reminders}
+        notesCount={counts.notes}
       />
 
       {/* Set Profile PIN Modal (Prompted after login if PIN not yet set) */}
@@ -677,7 +629,9 @@ export const App: React.FC = () => {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <RemiVaultApp />
+        <PreloadDataProvider>
+          <RemiVaultApp />
+        </PreloadDataProvider>
       </ThemeProvider>
     </AuthProvider>
   );

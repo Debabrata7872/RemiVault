@@ -1,0 +1,87 @@
+/* RemiVault Luxury Fintech Shimmer Skeleton Styles */
+
+@keyframes remivaultShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes skeletonFadeIn {
+  from {
+    opacity: 0.6;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.remivault-skeleton-shimmer {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.11) 50%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: remivaultShimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  position: relative;
+  overflow: hidden;
+  will-change: background-position;
+}
+
+/* Light Mode Luxury Shimmer Adaptation */
+[data-theme="light"] .remivault-skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(15, 23, 42, 0.05) 0%,
+    rgba(15, 23, 42, 0.12) 50%,
+    rgba(15, 23, 42, 0.05) 100%
+  );
+  background-size: 200% 100%;
+}
+
+.skeleton-container-fade {
+  animation: skeletonFadeIn 0.35s ease-out;
+  pointer-events: none;
+  user-select: none;
+}
+
+.skeleton-card-base {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: var(--shadow-sm) !important;
+  cursor: default !important;
+  transition: opacity 0.25s ease;
+}
+
+.skeleton-sub-card {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+
+[data-theme="light"] .skeleton-sub-card {
+  background: rgba(15, 23, 42, 0.02) !important;
+}
+
+/* Staggered pulse effect for nested lists */
+.skeleton-card-base:nth-child(2) .remivault-skeleton-shimmer {
+  animation-delay: 0.1s;
+}
+.skeleton-card-base:nth-child(3) .remivault-skeleton-shimmer {
+  animation-delay: 0.2s;
+}
+.skeleton-card-base:nth-child(4) .remivault-skeleton-shimmer {
+  animation-delay: 0.3s;
+}
+.skeleton-card-base:nth-child(5) .remivault-skeleton-shimmer {
+  animation-delay: 0.4s;
+}
+.skeleton-card-base:nth-child(6) .remivault-skeleton-shimmer {
+  animation-delay: 0.5s;
+}

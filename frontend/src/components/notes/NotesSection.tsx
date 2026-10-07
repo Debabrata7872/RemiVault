@@ -13,12 +13,13 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { 
-  fetchNotesApi, 
   createNoteApi, 
   updateNoteApi, 
   deleteNoteApi 
 } from '../../services/notes';
 import type { Note, NoteColor } from '../../services/notes';
+import { NotesSkeleton } from '../common/skeletons';
+import { usePreloadData } from '../../context/PreloadDataContext';
 
 const COLOR_OPTIONS: { key: NoteColor; label: string; border: string; bg: string }[] = [
   { key: 'default', label: 'Obsidian', border: 'rgba(255, 255, 255, 0.12)', bg: 'rgba(22, 29, 47, 0.7)' },
@@ -30,8 +31,15 @@ const COLOR_OPTIONS: { key: NoteColor; label: string; border: string; bg: string
 ];
 
 export const NotesSection: React.FC = () => {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const { 
+    notes, 
+    setNotes, 
+    notesLoaded, 
+    notesLoading, 
+    refreshNotes 
+  } = usePreloadData();
+
+  const [loading, setLoading] = useState<boolean>(!notesLoaded);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState<string>('');
   
@@ -79,8 +87,7 @@ export const NotesSection: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchNotesApi();
-      setNotes(data);
+      await refreshNotes();
     } catch (err: unknown) {
       const e = err as { message?: string };
       setError(e?.message || 'Failed to fetch personal notes');
@@ -90,8 +97,12 @@ export const NotesSection: React.FC = () => {
   };
 
   useEffect(() => {
-    loadNotes();
-  }, []);
+    if (!notesLoaded) {
+      loadNotes();
+    } else {
+      setLoading(false);
+    }
+  }, [notesLoaded]);
 
   const openCreateModal = () => {
     setEditingNote(null);
@@ -272,10 +283,8 @@ export const NotesSection: React.FC = () => {
         </div>
       )}
 
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-          Loading your personal notes...
-        </div>
+      {(loading || (notesLoading && notes.length === 0)) ? (
+        <NotesSkeleton />
       ) : notes.length === 0 ? (
         <div className="card notes-empty-state">
           <FileText size={48} color="var(--primary-light)" style={{ opacity: 0.7 }} />

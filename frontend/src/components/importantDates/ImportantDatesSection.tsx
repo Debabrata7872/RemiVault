@@ -35,6 +35,8 @@ import type {
   RecurrenceType,
   ImportantDateCounts
 } from '../../services/importantDates';
+import { ImportantDatesSkeleton } from '../common/skeletons';
+import { usePreloadData } from '../../context/PreloadDataContext';
 
 interface CategoryMeta {
   label: string;
@@ -125,21 +127,30 @@ function formatDateDisplay(dateStr: string): string {
 }
 
 export const ImportantDatesSection: React.FC = () => {
-  const [dates, setDates] = useState<ImportantDate[]>([]);
-  const [counts, setCounts] = useState<ImportantDateCounts>({
-    total: 0,
-    pinned: 0,
-    urgent: 0,
-    upcoming: 0,
-    expired: 0,
-  });
-  const [loading, setLoading] = useState<boolean>(true);
+  const {
+    dates: preloadedDates,
+    dateCounts: preloadedCounts,
+    datesLoaded,
+  } = usePreloadData();
+
+  const [dates, setDates] = useState<ImportantDate[]>(preloadedDates);
+  const [counts, setCounts] = useState<ImportantDateCounts>(preloadedCounts);
+  const [loading, setLoading] = useState<boolean>(!datesLoaded && dates.length === 0);
   const [error, setError] = useState<string | null>(null);
 
   // Filters
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [activeFilter, setActiveFilter] = useState<'all' | 'urgent' | 'pinned' | 'upcoming' | 'expired'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Sync with preloaded data when loaded and no custom filters are applied
+  useEffect(() => {
+    if (datesLoaded && activeCategory === 'all' && activeFilter === 'all' && searchQuery === '') {
+      setDates(preloadedDates);
+      setCounts(preloadedCounts);
+      setLoading(false);
+    }
+  }, [datesLoaded, preloadedDates, preloadedCounts, activeCategory, activeFilter, searchQuery]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -440,10 +451,7 @@ export const ImportantDatesSection: React.FC = () => {
 
       {/* Dates Cards Grid */}
       {loading && dates.length === 0 ? (
-        <div className="dates-empty-box">
-          <RefreshCw size={28} className="spin" color="#818cf8" />
-          <p>Loading your important dates...</p>
-        </div>
+        <ImportantDatesSkeleton />
       ) : dates.length === 0 ? (
         <div className="dates-empty-box">
           <div className="dates-empty-icon">

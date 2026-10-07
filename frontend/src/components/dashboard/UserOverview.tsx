@@ -11,6 +11,7 @@ import {
   Clock,
   Loader2
 } from 'lucide-react';
+import { DashboardSkeleton } from '../common/skeletons';
 
 interface UserOverviewProps {
   userName: string;
@@ -35,6 +36,11 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
   upcomingRemindersCount = 0,
   isLoading = false,
 }) => {
+  // If loading, render the luxury fintech shimmer skeleton placeholder
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+
   // Determine greeting based on current time
   const getGreeting = () => {
     const hour = new Date().getHours();

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\NoteController;
 use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\ImportantDateController;
 use App\Http\Controllers\Api\VaultEntryController;
+use App\Http\Controllers\Api\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -94,6 +95,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('vault-entries', VaultEntryController::class);
     Route::patch('/vault-entries/{vaultEntry}/toggle-favorite', [VaultEntryController::class, 'toggleFavorite']);
     Route::post('/vault-entries/{vaultEntry}/record-access', [VaultEntryController::class, 'recordAccess']);
+
+    // Stage 8: Consolidated High-Speed Dashboard & Adaptive Preload
+    Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
 });
 
 // Legacy /user endpoint for standard Sanctum checks
