@@ -491,4 +491,170 @@ export async function resetPinWithOtpApi(
   );
 }
 
+/**
+ * =========================================================================
+ * User Activity & Usage Metrics Telemetry
+ * =========================================================================
+ */
+export async function recordSessionStartApi(
+  options?: RequestOptions
+): Promise<{ status: string; app_opens: number; total_time_spent_seconds: number; last_active_at?: string }> {
+  return apiPost('/activity/session-start', {}, options);
+}
+
+export async function sendHeartbeatApi(
+  durationSeconds: number = 30,
+  options?: RequestOptions
+): Promise<{ status: string; app_opens: number; total_time_spent_seconds: number; last_active_at?: string }> {
+  return apiPost('/activity/heartbeat', { duration_seconds: durationSeconds }, options);
+}
+
+/**
+ * =========================================================================
+ * Super Administrator Console APIs (Restricted Access)
+ * =========================================================================
+ */
+export interface AdminUserMetric {
+  id: number;
+  name: string;
+  email: string;
+  avatar_url?: string | null;
+  created_at: string;
+  has_security_pin: boolean;
+  app_opens: number;
+  total_seconds_spent: number;
+  formatted_time_spent: string;
+  last_session_started_at: string | null;
+  last_active_at: string | null;
+  is_online: boolean;
+  resources_count: {
+    notes: number;
+    reminders: number;
+    dates: number;
+    vault: number;
+    total: number;
+  };
+}
+
+export interface AdminOverviewResponse {
+  system: {
+    app_name: string;
+    app_env: string;
+    php_version: string;
+    laravel_version: string;
+    server_time_kolkata: string;
+    database: {
+      connection: string;
+      status: string;
+      latency_ms: number | null;
+    };
+    memory_usage_mb: number;
+  };
+  stats: {
+    total_users: number;
+    active_24h: number;
+    online_now: number;
+    total_app_opens: number;
+    total_seconds_spent: number;
+    formatted_total_time: string;
+    resources: {
+      notes: number;
+      reminders: number;
+      dates: number;
+      vault_entries: number;
+      feedback: number;
+    };
+  };
+}
+
+export interface AdminFeedbackItem {
+  id: number;
+  user_id?: number | null;
+  name: string;
+  email: string;
+  type: 'improvement' | 'feature' | 'bug';
+  message: string;
+  device_info?: string | null;
+  ip_address?: string | null;
+  submitted_at_kolkata: string;
+  status: 'new' | 'in_progress' | 'reviewed' | 'resolved';
+  admin_notes?: string | null;
+  created_at: string;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    avatar_url?: string | null;
+  } | null;
+}
+
+export async function verifyAdminPinApi(
+  pin: string,
+  options?: RequestOptions
+): Promise<{ valid: boolean; message: string; unlocked_at?: string }> {
+  try {
+    return await apiPost<{ valid: boolean; message: string; unlocked_at?: string }>(
+      '/admin/verify-pin',
+      { pin },
+      options
+    );
+  } catch (err: unknown) {
+    const apiErr = err as ApiError;
+    if (apiErr?.status === 422 || apiErr?.status === 403) {
+      return { valid: false, message: apiErr.message || 'Invalid Master Admin PIN.' };
+    }
+    throw err;
+  }
+}
+
+export async function fetchAdminOverviewApi(
+  options?: RequestOptions
+): Promise<AdminOverviewResponse> {
+  return apiGet<AdminOverviewResponse>('/admin/overview', options);
+}
+
+export async function fetchAdminUsersApi(
+  search?: string,
+  options?: RequestOptions
+): Promise<{ users: AdminUserMetric[]; total_count: number }> {
+  const query = search ? `?search=${encodeURIComponent(search)}` : '';
+  return apiGet<{ users: AdminUserMetric[]; total_count: number }>(`/admin/users${query}`, options);
+}
+
+export async function fetchAdminFeedbackApi(
+  options?: RequestOptions
+): Promise<{ feedbacks: AdminFeedbackItem[] }> {
+  return apiGet<{ feedbacks: AdminFeedbackItem[] }>('/admin/feedback', options);
+}
+
+export async function updateAdminFeedbackStatusApi(
+  id: number,
+  status: 'new' | 'in_progress' | 'reviewed' | 'resolved',
+  adminNotes?: string,
+  options?: RequestOptions
+): Promise<{ message: string; feedback: AdminFeedbackItem }> {
+  return apiPatch<{ message: string; feedback: AdminFeedbackItem }>(
+    `/admin/feedback/${id}/status`,
+    { status, admin_notes: adminNotes },
+    options
+  );
+}
+
+export async function changeAdminPinApi(
+  data: {
+    current_pin: string;
+    new_pin: string;
+    confirm_new_pin: string;
+  },
+  options?: RequestOptions
+): Promise<{ message: string; updated_at: string }> {
+  return apiPost<{ message: string; updated_at: string }>(
+    '/admin/change-pin',
+    data,
+    options
+  );
+}
+
+
+
 

@@ -65,20 +65,55 @@
   - **Dashboard Multi-Function Preloading**: When the user enters the dashboard, concurrently streams initial preview data for other core modules (Notes, Reminders, Vault) in React memory so navigating between tabs is fluid and seamless.
   - *Status:* Completed & Verified.
 
-- [ ] **9. Task & Work Notifications (Permission Access Flow & Active Alerts)**
-  - **Permission Access Request Flow**: Friendly, non-intrusive prompt explaining the value of notifications before triggering browser `Notification.requestPermission()`.
-  - **Active Notifications (After Access Allowed)**:
-    - Welcome confirmation notification once the user allows permission.
-    - Automated push/browser notifications for due tasks, reminder deadlines, and expiring documents/dates.
-    - Audio chime for completed tasks or urgent alerts.
-    - In-app notification center / toast banners for real-time foreground updates.
+- [x] **9. Task & Work Notifications (Cross-Platform System Tray & Desktop Alerts)**
+  - **Permission Access Request Flow**: Friendly, luxury non-intrusive modal (`<NotificationPromptModal />`) explaining the value of notifications before triggering browser permissions, with smart 3-day dismissal cooldown.
+  - **Cross-Platform Notification Support**:
+    - **Mobile Devices (.APK & Mobile Browsers)**: Native push alerts delivered directly to the Android/mobile system notification tray (top status bar alongside Wi-Fi, battery, and clock icons) via dedicated Service Worker registration (`sw.js`) and `registration.showNotification()` with custom vibration cadence.
+    - **Desktop Users (App & Desktop Browsers)**: Native OS desktop notifications (Windows Action Center, macOS Notification Center, Linux) via the browser Notification API and Service Worker client message dispatch.
+    - **Web Browser Users**: Unified background notification support across Chrome, Edge, Safari, Firefox, and mobile Android browsers.
+  - **Active Notifications & Automation**:
+    - Automatic welcome confirmation notification and audio chime on permission grant.
+    - 45-second background polling scheduler scanning due tasks, reminder deadlines, and expiring documents/dates (within 7-day countdown).
+    - Synthesized luxury crystal fintech audio chimes (`playFintechChime()`) via the Web Audio API without relying on external media assets.
+    - Foreground glassmorphic floating toast alerts (`<NotificationToast />`) with click-to-navigate action.
+    - Dedicated "System Alerts & Notifications" section in Settings modal with live status pill, sound/due task/expiration toggles, and test notification/chime buttons.
+  - *Status:* Completed & Verified.
 
-- [ ] **10. Admin Panel (Exclusive to Super Admin)**
-  - Dedicated admin controls and diagnostics, hidden and inaccessible to regular users, restricted strictly to the authorized super-admin account.
-  - User accounts overview, active sessions, and verification statuses.
-  - Real-time system health metrics, database status, and activity telemetry.
+- [x] **10. Admin Panel & Usage Telemetry (Exclusive to Super Admin)**
+  - Dedicated admin controls and diagnostics, hidden and completely inaccessible to regular users, restricted strictly to authorized super-admin account.
+  - Master PIN verification prompt (4-digit Master Admin PIN) required before granting entry to the Admin Panel.
+  - Auto-lock protection: Admin panel automatically locks and clears authorization immediately upon modal exit, window blur, tab/app switching, session expiry, or new login.
+  - Dedicated `user_usage_metrics` database table linked to `users.id` tracking:
+    - User name & account identity
+    - Frequency of app openings (`app_opens`)
+    - Total active usage duration (`total_time_spent_seconds` / formatted hours and minutes)
+    - Real-time active status (online dot indicator based on heartbeat telemetry)
+  - Real-time system health metrics, database latency ping, environment diagnostics, and stored encrypted vault records breakdown.
+  - Integrated User Feedbacks & Bug Reports management drawer with category badges and status updates.
+  - *Status:* Completed & Deployed.
 
 - [ ] **11. Mobile App (.APK Build)**
   - Capacitor integration with the Vite / React frontend.
   - Android Studio / Android CLI build pipeline.
   - Generates standalone installable `.apk` file for Android devices.
+
+- [ ] **12. Superb Professional Loading Screen (Luxury App Splash & Launch Experience)**
+  - High-fidelity luxury fintech splash/loading screen on initial app launch and cold starts.
+  - Pulsing glowing RemiVault shield logo, biometric/fintech radiance ring, subtle typography, and smooth progress track.
+  - Seamless transition/fade-out into the main application once authentication and initial data are hydrated.
+
+- [ ] **13. Smart In-App Install Prompt (.APK / Device Compatibility Banner)**
+  - Periodic, non-intrusive banner/modal popup detecting mobile device compatibility and offering one-click install/download of the standalone `.apk` app.
+  - Dismissal cooldown logic (prompts periodically, remembers user dismissals so it doesn't annoy on every navigation/refresh).
+  - Device detection (Android user agent vs desktop) to offer the appropriate `.apk` package or PWA install.
+
+- [ ] **14. App Version Upgrade Notification & Download Management**
+  - In-app version check against backend endpoint (`/api/app/version` or update manifest).
+  - When a new version is released: shows an update alert banner/card announcing the new version.
+  - Displays explicit download size (e.g. `Update size: 12.4 MB`) so users are aware of their internet/data usage before downloading.
+  - If user clicks "Download & Update", initiates immediate update/download.
+  - If deferred or ignored: snoozes and periodically reminds the user after several logins or next day until updated.
+
+- [ ] **15. Post-Update "What's New" Changelog Modal (Auto-Dismiss by Content Height)**
+  - After a successful upgrade (detected by version bump in local storage/app state), displays a sleek "What's New in vX.X.X" release notes modal highlighting new features and bug fixes.
+  - Timed auto-close feature calibrated dynamically based on content length/height (longer release notes stay visible proportionally longer, or closes after reading time if untouched), while also allowing manual dismissal with a single tap.

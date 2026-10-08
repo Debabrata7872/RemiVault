@@ -17,13 +17,28 @@ import {
   HelpCircle,
   Users,
   LogOut,
-  Send
+  Send,
+  Bell,
+  Volume2,
+  VolumeX,
+  Smartphone,
+  Calendar
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import type { Theme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { changePasswordApi, sendFeedbackApi } from '../../services/api';
 import { UserAvatar } from '../common/UserAvatar';
+import {
+  getNotificationPermission,
+  requestNotificationPermission,
+  getNotificationSettings,
+  saveNotificationSettings,
+  showSystemNotification,
+  playFintechChime,
+  type NotificationPermissionState,
+  type NotificationSettings
+} from '../../services/notificationService';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -34,7 +49,7 @@ interface SettingsModalProps {
   notesCount?: number;
 }
 
-type AccordionSection = 'profile' | 'theme' | 'security' | 'feedback' | 'session' | null;
+type AccordionSection = 'profile' | 'theme' | 'security' | 'notifications' | 'feedback' | 'session' | null;
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ 
   isOpen, 
@@ -78,6 +93,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState(false);
 
+  // System Notifications state
+  const [notifPermission, setNotifPermission] = useState<NotificationPermissionState>(() => getNotificationPermission());
+  const [notifSettings, setNotifSettings] = useState<NotificationSettings>(() => getNotificationSettings());
+  const [testNotifStatus, setTestNotifStatus] = useState<string | null>(null);
+
+  const handleEnableNotifications = async () => {
+    const res = await requestNotificationPermission();
+    setNotifPermission(res);
+  };
+
+  const handleToggleSound = () => {
+    const updated = saveNotificationSettings({ soundEnabled: !notifSettings.soundEnabled });
+    setNotifSettings(updated);
+    if (updated.soundEnabled) {
+      playFintechChime();
+    }
+  };
+
+  const handleToggleReminders = () => {
+    const updated = saveNotificationSettings({ remindersEnabled: !notifSettings.remindersEnabled });
+    setNotifSettings(updated);
+  };
+
+  const handleToggleDates = () => {
+    const updated = saveNotificationSettings({ datesEnabled: !notifSettings.datesEnabled });
+    setNotifSettings(updated);
+  };
+
+  const handleSendTestNotification = async () => {
+    setTestNotifStatus('Sending test alert...');
+    playFintechChime();
+    const ok = await showSystemNotification('🔔 RemiVault System Test Alert', {
+      body: 'Notifications are working! Alerts appear in your mobile status bar and desktop tray.',
+      tag: 'test-from-settings',
+    });
+    if (ok) {
+      setTestNotifStatus('Test alert delivered to system tray!');
+    } else {
+      setTestNotifStatus('Please allow system notifications first.');
+    }
+    setTimeout(() => setTestNotifStatus(null), 4000);
+  };
+
   // Reset all modal internal state (collapses all accordions and clears inputs)
   const resetAllState = () => {
     setOpenSection(null);
@@ -101,6 +159,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setFeedbackSuccess(null);
     setFeedbackError(null);
     setIsFeedbackSubmitting(false);
+    setNotifPermission(getNotificationPermission());
+    setNotifSettings(getNotificationSettings());
+    setTestNotifStatus(null);
   };
 
   const handleModalClose = () => {
@@ -688,6 +749,152 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </button>
                     </div>
                   </form>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="settings-hub-divider" />
+
+          {/* SECTION: SYSTEM NOTIFICATIONS & ALERTS */}
+          <div className="settings-hub-item">
+            <div 
+              className={`settings-hub-row ${openSection === 'notifications' ? 'active' : ''}`}
+              onClick={() => toggleSection('notifications')}
+            >
+              <div className="settings-hub-row-left">
+                <div className="settings-icon-bubble notif-bubble">
+                  <Bell size={18} color="#f59e0b" />
+                </div>
+                <div>
+                  <h4 className="settings-item-title">
+                    <span className="settings-title-full">System Alerts &amp; Notifications</span>
+                    <span className="settings-title-short">Notifications</span>
+                  </h4>
+                  <span className="settings-item-sub">Status bar alerts, desktop tray &amp; sound chimes</span>
+                </div>
+              </div>
+              <div className="settings-hub-row-right">
+                <span className={`badge ${notifPermission === 'granted' ? 'badge-success' : notifPermission === 'denied' ? 'badge-danger' : 'badge-primary'}`}>
+                  {notifPermission === 'granted' ? 'Active' : notifPermission === 'denied' ? 'Blocked' : 'Setup'}
+                </span>
+                <ChevronDown size={16} className={`settings-hub-chevron ${openSection === 'notifications' ? 'expanded' : ''}`} />
+              </div>
+            </div>
+
+            {openSection === 'notifications' && (
+              <div className="settings-hub-drawer">
+                <div className="settings-notif-overview-card">
+                  <div className="notif-overview-icon-col">
+                    <Smartphone size={22} className="notif-phone-icon" />
+                  </div>
+                  <div className="notif-overview-text">
+                    <strong>Cross-Platform Status Bar &amp; Tray Delivery</strong>
+                    <p>
+                      Alerts appear on your mobile status bar (beside Wi-Fi &amp; battery) and in desktop notifications for scheduled tasks and document renewals.
+                    </p>
+                    {notifPermission !== 'granted' ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm notif-req-btn"
+                        onClick={handleEnableNotifications}
+                        style={{ marginTop: '0.65rem' }}
+                      >
+                        <Bell size={14} />
+                        <span>Enable System Notifications</span>
+                      </button>
+                    ) : (
+                      <span className="notif-active-indicator">
+                        <CheckCircle2 size={14} color="#10b981" />
+                        <span>System notifications enabled &amp; active</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Preference Toggles */}
+                <div className="settings-notif-toggles-list">
+                  <div className="settings-notif-toggle-row">
+                    <div className="toggle-info">
+                      <div className="toggle-title-row">
+                        {notifSettings.soundEnabled ? <Volume2 size={16} color="#818cf8" /> : <VolumeX size={16} color="#94a3b8" />}
+                        <strong>Alert Chime Sound</strong>
+                      </div>
+                      <span>Plays a subtle luxury crystal fintech chime on active notifications.</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={`notif-toggle-switch ${notifSettings.soundEnabled ? 'on' : 'off'}`}
+                      onClick={handleToggleSound}
+                      title="Toggle sound"
+                    >
+                      <span className="toggle-knob" />
+                    </button>
+                  </div>
+
+                  <div className="settings-notif-toggle-row">
+                    <div className="toggle-info">
+                      <div className="toggle-title-row">
+                        <Bell size={16} color="#f59e0b" />
+                        <strong>Task &amp; Reminder Due Alerts</strong>
+                      </div>
+                      <span>Pushes notification when a scheduled reminder or task deadline arrives.</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={`notif-toggle-switch ${notifSettings.remindersEnabled ? 'on' : 'off'}`}
+                      onClick={handleToggleReminders}
+                      title="Toggle reminder alerts"
+                    >
+                      <span className="toggle-knob" />
+                    </button>
+                  </div>
+
+                  <div className="settings-notif-toggle-row">
+                    <div className="toggle-info">
+                      <div className="toggle-title-row">
+                        <Calendar size={16} color="#06b6d4" />
+                        <strong>Document Expiration Warnings</strong>
+                      </div>
+                      <span>Proactive countdown alerts before passports, licenses, cards &amp; warranties expire.</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={`notif-toggle-switch ${notifSettings.datesEnabled ? 'on' : 'off'}`}
+                      onClick={handleToggleDates}
+                      title="Toggle expiration warnings"
+                    >
+                      <span className="toggle-knob" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Test Action Controls */}
+                <div className="settings-notif-test-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleSendTestNotification}
+                  >
+                    <Bell size={14} />
+                    <span>Send Test Notification</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => playFintechChime()}
+                  >
+                    <Volume2 size={14} />
+                    <span>Test Chime Sound</span>
+                  </button>
+                </div>
+
+                {testNotifStatus && (
+                  <div className="settings-alert info" style={{ marginTop: '0.65rem' }}>
+                    <CheckCircle2 size={15} />
+                    <span>{testNotifStatus}</span>
+                  </div>
                 )}
               </div>
             )}

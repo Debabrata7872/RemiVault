@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Shield,
+  ShieldCheck,
   CheckCircle2, 
   Bell, 
   Calendar, 
@@ -8,7 +9,6 @@ import {
   KeyRound,
   LogOut,
   LayoutDashboard,
-  Terminal,
   ArrowRight,
   Lock,
   Sparkles,
@@ -17,7 +17,7 @@ import {
   X,
   ChevronRight
 } from 'lucide-react';
-import { checkBackendHealth, getStoredToken } from './services/api';
+import { checkBackendHealth } from './services/api';
 import type { HealthResponse } from './services/api';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -32,9 +32,14 @@ import { RemindersSection } from './components/reminders/RemindersSection';
 import { ImportantDatesSection } from './components/importantDates/ImportantDatesSection';
 import { VaultSection } from './components/vault/VaultSection';
 import { UserOverview } from './components/dashboard/UserOverview';
-import { AdminDiagnosticsModal } from './components/admin/AdminDiagnosticsModal';
+import { AdminPinModal, AdminPanelModal } from './components/admin';
+import { useActivityTracker } from './services/activityTracker';
 import { isSuperAdmin } from './utils/admin';
 import { PreloadDataProvider, usePreloadData } from './context/PreloadDataContext';
+import { NotificationPromptModal } from './components/notifications/NotificationPromptModal';
+import { NotificationToast } from './components/notifications/NotificationToast';
+import { useNotificationScheduler } from './hooks/useNotificationScheduler';
+import { initServiceWorker, shouldShowPermissionPrompt } from './services/notificationService';
 import './App.css';
 
 type WorkspaceTab = 'overview' | 'vault' | 'dates' | 'reminders' | 'notes';
@@ -57,15 +62,61 @@ const RemiVaultApp: React.FC = () => {
     resetPasswordWithOtp
   } = useAuth();
   
-  // Health & Diagnostics state (Kept for Admin diagnostics modal)
+  // Health status for top navigation indicator
   const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [healthLoading, setHealthLoading] = useState<boolean>(true);
-  const [healthError, setHealthError] = useState<string | null>(null);
-  const [latency, setLatency] = useState<number | null>(null);
-  const [isAdminDiagOpen, setIsAdminDiagOpen] = useState<boolean>(false);
 
-  // Super Admin Authorization
+  // User Usage & Activity Tracker (App opens and active duration)
+  useActivityTracker(!!user && !isLocked, user?.id);
+
+  // Super Admin Authorization & Master PIN State
   const isAdmin = isSuperAdmin(user?.email);
+  const [isAdminPinModalOpen, setIsAdminPinModalOpen] = useState<boolean>(false);
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState<boolean>(false);
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState<boolean>(false);
+
+  // Auto-lock admin console immediately (wipes authorization state & closes modal)
+  const lockAdminConsole = useCallback(() => {
+    setIsAdminUnlocked(false);
+    setIsAdminPanelOpen(false);
+    setIsAdminPinModalOpen(false);
+  }, []);
+
+  // When user clicks the Admin button in the navbar:
+  // Entering always requires Master PIN verification!
+  const handleOpenAdmin = () => {
+    setIsAdminUnlocked(false);
+    setIsAdminPanelOpen(false);
+    setIsAdminPinModalOpen(true);
+  };
+
+  // Auto-lock admin on logout, session expiration, new login, profile switch, or app lock
+  useEffect(() => {
+    lockAdminConsole();
+  }, [user?.id, isLocked, lockAdminConsole]);
+
+  // Global blur / window loss of focus listener:
+  // If the admin panel or pin modal is open, immediately lock on window blur / tab hide
+  useEffect(() => {
+    if (!isAdminPanelOpen && !isAdminPinModalOpen) return;
+
+    const handleWindowBlur = () => {
+      lockAdminConsole();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        lockAdminConsole();
+      }
+    };
+
+    window.addEventListener('blur', handleWindowBlur);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('blur', handleWindowBlur);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isAdminPanelOpen, isAdminPinModalOpen, lockAdminConsole]);
 
   // Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
@@ -81,25 +132,52 @@ const RemiVaultApp: React.FC = () => {
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('overview');
 
   // Preloaded In-Memory Data Context
-  const { counts, isOverviewLoading } = usePreloadData();
+  const { counts, isOverviewLoading, reminders, dates } = usePreloadData();
+
+  // Cross-Platform Notification Scheduler (System Tray, Status Bar & Foreground)
+  const { activeToast, dismissToast } = useNotificationScheduler({
+    enabled: !!user && !isLocked,
+    reminders,
+    importantDates: dates,
+    onNavigateTab: (tab) => setWorkspaceTab(tab),
+  });
+
+  // Friendly In-App Notification Permission Prompt Modal State
+  const [isNotifPromptOpen, setIsNotifPromptOpen] = useState<boolean>(false);
+
+  // Initialize Service Worker for Android status bar & desktop tray notifications
+  useEffect(() => {
+    initServiceWorker();
+
+    if ('serviceWorker' in navigator) {
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'NAVIGATE_TAB' && event.data.tab) {
+          setWorkspaceTab(event.data.tab);
+        }
+      };
+      navigator.serviceWorker.addEventListener('message', handleMessage);
+      return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
+    }
+  }, []);
+
+  // Proactively display friendly permission prompt on cold start (after initial hydration)
+  useEffect(() => {
+    if (user && !isLocked && !isOverviewLoading) {
+      if (shouldShowPermissionPrompt()) {
+        const timer = setTimeout(() => {
+          setIsNotifPromptOpen(true);
+        }, 3500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [user, isLocked, isOverviewLoading]);
 
   const fetchStatus = useCallback(async () => {
-    setHealthLoading(true);
-    setHealthError(null);
-    const start = performance.now();
-
     try {
       const data = await checkBackendHealth();
-      const end = performance.now();
       setHealth(data);
-      setLatency(Math.round(end - start));
-    } catch (err: unknown) {
-      const e = err as { message?: string };
-      setHealthError(e?.message || 'Failed to connect to RemiVault backend API.');
+    } catch {
       setHealth(null);
-      setLatency(null);
-    } finally {
-      setHealthLoading(false);
     }
   }, []);
 
@@ -111,11 +189,6 @@ const RemiVaultApp: React.FC = () => {
     setAuthModalMode(mode);
     setIsAuthModalOpen(true);
   };
-
-  const storedToken = getStoredToken();
-  const maskedToken = storedToken 
-    ? `${storedToken.substring(0, 4)}...${storedToken.substring(storedToken.length - 4)}`
-    : null;
 
   return (
     <div className="app-container">
@@ -140,47 +213,64 @@ const RemiVaultApp: React.FC = () => {
             <div className="navbar-user-group">
               <button 
                 type="button"
-                className="badge badge-primary user-nav-badge"
+                className="user-nav-badge"
                 onClick={() => setIsSettingsOpen(true)}
                 title="Account Settings & Preferences"
-                style={{ cursor: 'pointer', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
               >
                 <UserAvatar
-                  size={20}
+                  size={24}
                   name={user.name}
                   email={user.email}
                   photoUrl={activeProfile?.photoUrl || user.avatar_url}
                   style={{ borderRadius: '50%', flexShrink: 0 }}
-                  fontSize="0.65rem"
+                  fontSize="0.72rem"
                 />
                 <span className="user-nav-name">{user.name}</span>
               </button>
-              <button 
-                type="button"
-                className="btn btn-secondary nav-lock-btn" 
-                onClick={lockApp}
-                title="Lock Vault (Quick PIN Access)"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-              >
-                <Lock size={14} />
-                <span>Lock</span>
-              </button>
-              <button 
-                className="btn btn-secondary nav-settings-btn" 
-                onClick={() => setIsSettingsOpen(true)}
-                title="Settings & Appearance"
-              >
-                <Settings size={14} />
-                <span>Settings</span>
-              </button>
-              <button 
-                className="btn btn-secondary nav-logout-btn" 
-                onClick={() => setIsLogoutPromptOpen(true)}
-                title="Sign Out or Switch Account"
-              >
-                <LogOut size={14} />
-                <span>Logout</span>
-              </button>
+
+              <div className="navbar-action-buttons">
+                <button 
+                  type="button"
+                  className="btn btn-secondary nav-action-btn nav-lock-btn" 
+                  onClick={lockApp}
+                  title="Lock Vault (Quick PIN Access)"
+                >
+                  <Lock size={15} />
+                  <span className="nav-btn-text">Lock</span>
+                </button>
+
+                {isAdmin && (
+                  <button 
+                    type="button"
+                    className="btn btn-secondary nav-action-btn nav-admin-btn" 
+                    onClick={handleOpenAdmin}
+                    title="Open Super Admin Console (PIN Protected)"
+                  >
+                    <ShieldCheck size={15} color="#818cf8" />
+                    <span className="nav-btn-text">Admin</span>
+                  </button>
+                )}
+
+                <button 
+                  type="button"
+                  className="btn btn-secondary nav-action-btn nav-settings-btn" 
+                  onClick={() => setIsSettingsOpen(true)}
+                  title="Settings & Appearance"
+                >
+                  <Settings size={15} />
+                  <span className="nav-btn-text">Settings</span>
+                </button>
+
+                <button 
+                  type="button"
+                  className="btn btn-secondary nav-action-btn nav-logout-btn" 
+                  onClick={() => setIsLogoutPromptOpen(true)}
+                  title="Sign Out or Switch Account"
+                >
+                  <LogOut size={15} />
+                  <span className="nav-btn-text">Logout</span>
+                </button>
+              </div>
             </div>
           ) : !isLocked ? (
             <div className="navbar-auth-group">
@@ -453,11 +543,11 @@ const RemiVaultApp: React.FC = () => {
           <div className="footer-links">
             <button 
               className="footer-btn-link"
-              onClick={() => setIsAdminDiagOpen(true)}
-              title="Open internal infrastructure & API telemetry (Admin only)"
+              onClick={handleOpenAdmin}
+              title="Open Super Admin Console (Master PIN Protected)"
             >
-              <Terminal size={14} />
-              <span>System Diagnostics (Admin)</span>
+              <ShieldCheck size={14} />
+              <span>Admin Console (Master PIN)</span>
             </button>
           </div>
         )}
@@ -607,20 +697,36 @@ const RemiVaultApp: React.FC = () => {
         </div>
       )}
 
-      {/* Admin / System Diagnostics Modal (Accessible strictly to admin user) */}
+      {/* Super Admin Console & Master PIN Verification (Strictly for super admin) */}
       {isAdmin && (
-        <AdminDiagnosticsModal
-          isOpen={isAdminDiagOpen}
-          onClose={() => setIsAdminDiagOpen(false)}
-          health={health}
-          loading={healthLoading}
-          fetchStatus={fetchStatus}
-          latency={latency}
-          error={healthError}
-          user={user}
-          maskedToken={maskedToken}
-        />
+        <>
+          <AdminPinModal
+            isOpen={isAdminPinModalOpen}
+            onClose={lockAdminConsole}
+            onPinVerified={() => {
+              setIsAdminUnlocked(true);
+              setIsAdminPinModalOpen(false);
+              setIsAdminPanelOpen(true);
+            }}
+          />
+          {isAdminUnlocked && (
+            <AdminPanelModal
+              isOpen={isAdminPanelOpen}
+              onClose={lockAdminConsole}
+              onLockAdmin={lockAdminConsole}
+            />
+          )}
+        </>
       )}
+
+      {/* Foreground Real-Time In-App Alert Toast */}
+      <NotificationToast toast={activeToast} onDismiss={dismissToast} />
+
+      {/* Friendly Notification Permission Flow Modal */}
+      <NotificationPromptModal
+        isOpen={isNotifPromptOpen}
+        onClose={() => setIsNotifPromptOpen(false)}
+      />
     </div>
   );
 };

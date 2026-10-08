@@ -1,12 +1,14 @@
 <?php
 
+use App\Http\Controllers\Api\ActivityController;
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FeedbackController;
+use App\Http\Controllers\Api\ImportantDateController;
 use App\Http\Controllers\Api\NoteController;
 use App\Http\Controllers\Api\ReminderController;
-use App\Http\Controllers\Api\ImportantDateController;
 use App\Http\Controllers\Api\VaultEntryController;
-use App\Http\Controllers\Api\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -98,9 +100,29 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Stage 8: Consolidated High-Speed Dashboard & Adaptive Preload
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
+
+    // User Usage & Activity Tracking (App opens count and active time spent)
+    Route::post('/activity/session-start', [ActivityController::class, 'sessionStart']);
+    Route::post('/activity/heartbeat', [ActivityController::class, 'heartbeat'])
+        ->middleware('throttle:60,1');
+});
+
+/**
+ * Super Administrator Console (Exclusively for authorized Super Admin with Master PIN verification)
+ */
+Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::post('/verify-pin', [AdminController::class, 'verifyPin'])
+        ->middleware('throttle:5,1');
+    Route::post('/change-pin', [AdminController::class, 'changePin'])
+        ->middleware('throttle:6,1');
+    Route::get('/overview', [AdminController::class, 'overview']);
+    Route::get('/users', [AdminController::class, 'users']);
+    Route::get('/feedback', [AdminController::class, 'feedback']);
+    Route::patch('/feedback/{id}/status', [AdminController::class, 'updateFeedbackStatus']);
 });
 
 // Legacy /user endpoint for standard Sanctum checks
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+

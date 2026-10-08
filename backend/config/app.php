@@ -123,4 +123,12 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Super Admin Console Security
+    |--------------------------------------------------------------------------
+    */
+    'admin_master_pin' => env('ADMIN_MASTER_PIN', '7872'),
+    'admin_email' => env('ADMIN_EMAIL', 'debabratasahoo499905@gmail.com'),
+
 ];

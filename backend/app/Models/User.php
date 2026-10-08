@@ -101,6 +101,15 @@ class User extends Authenticatable
     {
         return $this->hasMany(VaultEntry::class);
     }
+
+    /**
+     * Get the usage metric record (app opens and active time spent) for this user.
+     * Relational mapping: users.id -> user_usage_metrics.user_id
+     */
+    public function usageMetric(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(UserUsageMetric::class, 'user_id');
+    }
 }
 
 
