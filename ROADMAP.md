@@ -92,15 +92,21 @@
   - Integrated User Feedbacks & Bug Reports management drawer with category badges and status updates.
   - *Status:* Completed & Deployed.
 
-- [ ] **11. Mobile App (.APK Build)**
-  - Capacitor integration with the Vite / React frontend.
-  - Android Studio / Android CLI build pipeline.
-  - Generates standalone installable `.apk` file for Android devices.
+- [x] **11. Mobile App (.APK Build)**
+  - Capacitor integration with the Vite / React frontend (`@capacitor/core`, `@capacitor/cli`, `@capacitor/android`, `@capacitor/splash-screen`, `@capacitor/status-bar`).
+  - Android Gradle build pipeline using OpenJDK 21 and Android SDK tools.
+  - Bespoke RemiVault launcher icons across all screen densities and luxury dark splash screens.
+  - Cleartext local development traffic and dynamic API resolution (`getApiBaseUrl()`).
+  - Generated standalone installable `.apk` file (4.89 MB) ready for deployment.
+  - *Status:* Completed.
 
-- [ ] **12. Superb Professional Loading Screen (Luxury App Splash & Launch Experience)**
-  - High-fidelity luxury fintech splash/loading screen on initial app launch and cold starts.
-  - Pulsing glowing RemiVault shield logo, biometric/fintech radiance ring, subtle typography, and smooth progress track.
-  - Seamless transition/fade-out into the main application once authentication and initial data are hydrated.
+- [x] **12. Superb Professional Loading Screen (Luxury App Splash & Launch Experience)**
+  - High-fidelity luxury fintech launch screen with central floating RemiVault crest and dual rotating combination dials.
+  - Interactive category security capsules animating Passwords & Secrets, Private Notes & Documents, Reminders & Alerts, and Important Dates into "Locked Safely" status.
+  - Non-linear mechanical progress easing, dynamic security telemetry feed, and harmonic crystal audio chime.
+  - Replay button integrated directly into Settings ("Vault Launch & Lock Experience") allowing users to admire the animations anytime.
+  - Seamless fade-out transition into the main application.
+  - *Status:* Completed.
 
 - [ ] **13. Smart In-App Install Prompt (.APK / Device Compatibility Banner)**
   - Periodic, non-intrusive banner/modal popup detecting mobile device compatibility and offering one-click install/download of the standalone `.apk` app.

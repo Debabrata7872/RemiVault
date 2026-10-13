@@ -40,6 +40,7 @@ import { NotificationPromptModal } from './components/notifications/Notification
 import { NotificationToast } from './components/notifications/NotificationToast';
 import { useNotificationScheduler } from './hooks/useNotificationScheduler';
 import { initServiceWorker, shouldShowPermissionPrompt } from './services/notificationService';
+import { LuxuryLaunchScreen } from './components/common/LuxuryLaunchScreen';
 import './App.css';
 
 type WorkspaceTab = 'overview' | 'vault' | 'dates' | 'reminders' | 'notes';
@@ -47,6 +48,7 @@ type WorkspaceTab = 'overview' | 'vault' | 'dates' | 'reminders' | 'notes';
 const RemiVaultApp: React.FC = () => {
   const { 
     user, 
+    isLoading: isAuthLoading,
     logout,
     isLocked,
     isPendingPinSetup,
@@ -61,6 +63,10 @@ const RemiVaultApp: React.FC = () => {
     resetPinWithOtp,
     resetPasswordWithOtp
   } = useAuth();
+
+  // Superb Luxury App Launch Screen State
+  const [showLaunchScreen, setShowLaunchScreen] = useState<boolean>(true);
+  const [isManualLaunchPreview, setIsManualLaunchPreview] = useState<boolean>(false);
   
   // Health status for top navigation indicator
   const [health, setHealth] = useState<HealthResponse | null>(null);
@@ -568,6 +574,10 @@ const RemiVaultApp: React.FC = () => {
         datesCount={counts.dates}
         remindersCount={counts.reminders}
         notesCount={counts.notes}
+        onPreviewLaunchScreen={() => {
+          setIsSettingsOpen(false);
+          setIsManualLaunchPreview(true);
+        }}
       />
 
       {/* Set Profile PIN Modal (Prompted after login if PIN not yet set) */}
@@ -727,6 +737,19 @@ const RemiVaultApp: React.FC = () => {
         isOpen={isNotifPromptOpen}
         onClose={() => setIsNotifPromptOpen(false)}
       />
+
+      {/* Superb Luxury App Launch & Vault Lock Loading Screen */}
+      {(showLaunchScreen || isManualLaunchPreview) && (
+        <LuxuryLaunchScreen
+          isDataReady={!isAuthLoading}
+          minDurationMs={isManualLaunchPreview ? 2400 : 2200}
+          isManualPreview={isManualLaunchPreview}
+          onFinish={() => {
+            setShowLaunchScreen(false);
+            setIsManualLaunchPreview(false);
+          }}
+        />
+      )}
     </div>
   );
 };

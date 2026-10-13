@@ -22,7 +22,8 @@ import {
   Volume2,
   VolumeX,
   Smartphone,
-  Calendar
+  Calendar,
+  Sparkles
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import type { Theme } from '../../context/ThemeContext';
@@ -47,6 +48,7 @@ interface SettingsModalProps {
   datesCount?: number;
   remindersCount?: number;
   notesCount?: number;
+  onPreviewLaunchScreen?: () => void;
 }
 
 type AccordionSection = 'profile' | 'theme' | 'security' | 'notifications' | 'feedback' | 'session' | null;
@@ -57,7 +59,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   vaultCount = 0,
   datesCount = 0,
   remindersCount = 0,
-  notesCount = 0
+  notesCount = 0,
+  onPreviewLaunchScreen,
 }) => {
   const { userPreference, setTheme } = useTheme();
   const { user, logout, activeProfile, setupPin, lockApp } = useAuth();
@@ -529,6 +532,69 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     );
                   })}
                 </div>
+
+                {/* Vault Launch Screen Experience Preview */}
+                {onPreviewLaunchScreen && (
+                  <div 
+                    className="launch-preview-banner" 
+                    style={{ 
+                      marginTop: '1.25rem', 
+                      padding: '0.9rem 1.1rem', 
+                      background: 'rgba(245, 158, 11, 0.08)', 
+                      border: '1px solid rgba(245, 158, 11, 0.25)', 
+                      borderRadius: '12px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between', 
+                      gap: '1rem' 
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div 
+                        style={{ 
+                          width: 36, 
+                          height: 36, 
+                          borderRadius: 9, 
+                          background: 'rgba(245, 158, 11, 0.18)', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          color: '#f59e0b', 
+                          flexShrink: 0,
+                          boxShadow: '0 0 12px rgba(245, 158, 11, 0.25)'
+                        }}
+                      >
+                        <Sparkles size={18} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f8fafc' }}>
+                          Vault Launch &amp; Lock Experience
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                          Replay animated cryptographic dials, category locks &amp; security telemetry
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        onClose();
+                        onPreviewLaunchScreen();
+                      }}
+                      style={{ 
+                        fontSize: '0.75rem', 
+                        padding: '0.4rem 0.85rem', 
+                        borderColor: 'rgba(245, 158, 11, 0.4)', 
+                        color: '#fbbf24', 
+                        whiteSpace: 'nowrap',
+                        fontWeight: 600
+                      }}
+                    >
+                      <span>Play Intro</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -22,10 +22,13 @@ return [
     'allowed_origins' => array_filter([
         env('FRONTEND_URL', 'http://localhost:5173'),
         'http://127.0.0.1:5173',
+        'http://localhost',
+        'https://localhost',
+        'capacitor://localhost',
     ]),
 
     'allowed_origins_patterns' => [
-        '#^http://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+):5173$#',
+        '#^https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?$#',
         '#^https://.*\.vercel\.app$#',
         '#^https://.*\.onrender\.com$#',
     ],

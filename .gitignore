@@ -49,3 +49,9 @@ frontend/dist-ssr/
 frontend/*.local
 frontend/.env.local
 frontend/.env.*.local
+
+# Android Build Artifacts & APKs
+*.apk
+frontend/android/.gradle/
+frontend/android/build/
+frontend/android/app/build/

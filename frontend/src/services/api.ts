@@ -1,16 +1,34 @@
+import { Capacitor } from '@capacitor/core';
+
 /**
  * RemiVault Frontend API Client
  * 
  * Architecture Notes:
  * - Centralizes HTTP communication with the Laravel REST API.
- * - Uses relative '/api' base path by default so Vite dev server proxy seamlessly
- *   routes requests from both localhost and mobile devices on local Wi-Fi.
+ * - Resolves API base URL dynamically:
+ *   1. VITE_API_URL environment variable if set.
+ *   2. User/developer custom API URL in localStorage ('remivault_custom_api_url').
+ *   3. Native Android app (Capacitor) routes to host LAN server ('http://192.168.0.129:8000/api').
+ *   4. Web browser uses relative '/api' through Vite proxy.
  * - Supports AbortController and automatic 15s request timeouts to prevent UI hang.
  * - Always sends 'Accept: application/json' so Laravel returns JSON responses.
  * - Manages Bearer tokens for stateless authorization.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+export function getApiBaseUrl(): string {
+  if (import.meta.env.VITE_API_URL) {
+    return (import.meta.env.VITE_API_URL as string).replace(/\/+$/, '');
+  }
+  if (typeof localStorage !== 'undefined') {
+    const custom = localStorage.getItem('remivault_custom_api_url');
+    if (custom) return custom.trim().replace(/\/+$/, '');
+  }
+  if (Capacitor.isNativePlatform()) {
+    return 'http://192.168.0.129:8000/api';
+  }
+  return '/api';
+}
+
 const TOKEN_KEY = 'remivault_auth_token';
 
 export interface User {
@@ -130,7 +148,7 @@ async function fetchWithTimeout(
  */
 export async function apiGet<T>(endpoint: string, options?: RequestOptions): Promise<T> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const url = `${API_BASE_URL}${cleanEndpoint}`;
+  const url = `${getApiBaseUrl()}${cleanEndpoint}`;
 
   const response = await fetchWithTimeout(
     url,
@@ -165,7 +183,7 @@ export async function apiPost<T, B = unknown>(
   options?: RequestOptions
 ): Promise<T> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const url = `${API_BASE_URL}${cleanEndpoint}`;
+  const url = `${getApiBaseUrl()}${cleanEndpoint}`;
 
   const response = await fetchWithTimeout(
     url,
@@ -201,7 +219,7 @@ export async function apiPut<T, B = unknown>(
   options?: RequestOptions
 ): Promise<T> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const url = `${API_BASE_URL}${cleanEndpoint}`;
+  const url = `${getApiBaseUrl()}${cleanEndpoint}`;
 
   const response = await fetchWithTimeout(
     url,
@@ -237,7 +255,7 @@ export async function apiPatch<T, B = unknown>(
   options?: RequestOptions
 ): Promise<T> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const url = `${API_BASE_URL}${cleanEndpoint}`;
+  const url = `${getApiBaseUrl()}${cleanEndpoint}`;
 
   const response = await fetchWithTimeout(
     url,
@@ -269,7 +287,7 @@ export async function apiPatch<T, B = unknown>(
  */
 export async function apiDelete<T>(endpoint: string, options?: RequestOptions): Promise<T> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const url = `${API_BASE_URL}${cleanEndpoint}`;
+  const url = `${getApiBaseUrl()}${cleanEndpoint}`;
 
   const response = await fetchWithTimeout(
     url,
