@@ -126,3 +126,23 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+/**
+ * Public Direct APK Download Endpoint
+ * Serves the APK with explicit android package headers to prevent browsers from appending .zip
+ */
+Route::get('/download/apk', function () {
+    $apkPath = base_path('../frontend/public/downloads/RemiVault.apk');
+    if (!file_exists($apkPath)) {
+        $apkPath = base_path('../frontend/android/app/build/outputs/apk/debug/app-debug.apk');
+    }
+    if (!file_exists($apkPath)) {
+        return response()->json(['message' => 'APK package not found on server.'], 404);
+    }
+    return response()->download($apkPath, 'RemiVault.apk', [
+        'Content-Type' => 'application/vnd.android.package-archive',
+        'Content-Disposition' => 'attachment; filename="RemiVault.apk"',
+        'X-Content-Type-Options' => 'nosniff',
+    ]);
+});
+
+

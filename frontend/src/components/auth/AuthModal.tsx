@@ -13,8 +13,10 @@ import {
   CheckCircle2,
   ShieldCheck
 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import { useAuth } from '../../context/AuthContext';
-import { sendEmailOtpApi, checkEmailOtpApi, type ApiError } from '../../services/api';
+import { sendEmailOtpApi, checkEmailOtpApi, getApiBaseUrl, type ApiError } from '../../services/api';
 import { auth, googleProvider } from '../../config/firebase';
 import { 
   signInWithPopup, 
@@ -65,6 +67,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const { 
     login, 
+    register,
     registerWithOtp, 
     resetPasswordWithOtp, 
     loginWithFirebase, 
@@ -74,6 +77,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [step, setStep] = useState<Step>('details');
+  const [useOtpRegister, setUseOtpRegister] = useState<boolean>(false);
   
   // Input fields
   const [name, setName] = useState('');
@@ -92,6 +96,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   // UI state
   const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
@@ -175,6 +180,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
       setMode(initialMode);
       setStep('details');
+      setUseOtpRegister(false);
       setName('');
       setIdentifier('');
       setPassword('');
@@ -211,6 +217,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsGoogleSubmitting(false);
     setMode(newMode);
     setStep('details');
+    setUseOtpRegister(false);
     setOtp('');
     setPassword('');
     setPasswordConfirmation('');
@@ -222,12 +229,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const isEmail = (val: string) => val.includes('@');
 
   /**
-   * Google Sign-In with Firebase Popup (Sleek 1-click)
+   * Google Sign-In with Firebase Popup (Sleek 1-click for Web)
    */
   const handleGoogleSignIn = async () => {
-    const controller = startAsyncOp();
     setClientError(null);
     clearError();
+
+    // In native Android APK: Launch Chrome Custom Tab for secure Google sign-in
+    if (Capacitor.isNativePlatform()) {
+      setIsGoogleSubmitting(true);
+      try {
+        const backendBase = getApiBaseUrl().replace(/\/api$/, '');
+        await Browser.open({
+          url: `${backendBase}/auth/google-mobile`,
+          windowName: '_blank'
+        });
+      } catch (err: unknown) {
+        setClientError('Could not launch Google authentication window. Please use email & password.');
+      } finally {
+        setIsGoogleSubmitting(false);
+      }
+      return;
+    }
+
+    const controller = startAsyncOp();
     setIsGoogleSubmitting(true);
 
     try {
@@ -268,6 +293,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
       if (errorObj.code === 'auth/popup-closed-by-user' || errorObj.code === 'auth/cancelled-popup-request') {
         setClientError('Google sign-in was cancelled.');
+      } else if (
+        errorObj.code === 'auth/missing-initial-state' || 
+        errorObj.message?.includes('missing initial state') ||
+        errorObj.message?.includes('sessionStorage is inaccessible')
+      ) {
+        setClientError('Google sign-in session state is blocked in this view. Please sign in or register with your email and password below.');
       } else {
         setClientError(errorObj.message || 'Google sign-in failed. Please try again.');
       }
@@ -279,7 +310,75 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   /**
-   * Step 1: Send OTP to Email or Phone (Registration or Forgot Password)
+   * Direct Manual Account Registration (Fast 1-Click, No OTP delay or Firebase dependency)
+   */
+  const handleDirectRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setClientError(null);
+    clearError();
+
+    const cleanName = name.trim();
+    const cleanInput = identifier.trim();
+
+    if (!cleanName) {
+      setClientError('Please enter your full name.');
+      return;
+    }
+    if (!cleanInput) {
+      setClientError('Please enter your email address.');
+      return;
+    }
+    if (password.length < 8) {
+      setClientError('Password must be at least 8 characters long.');
+      return;
+    }
+    if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+      setClientError('Password must contain both letters and numbers.');
+      return;
+    }
+    if (password !== passwordConfirmation) {
+      setClientError('Passwords do not match.');
+      return;
+    }
+
+    // Format email or synthetic phone email
+    let formattedEmail = cleanInput;
+    if (!cleanInput.includes('@')) {
+      const cleanPhone = cleanInput.replace(/\D/g, '');
+      if (cleanPhone.length >= 7) {
+        formattedEmail = `phone_${cleanPhone}@remivault.local`;
+      } else {
+        setClientError('Please enter a valid email address (e.g. name@example.com).');
+        return;
+      }
+    }
+
+    const controller = startAsyncOp();
+    setIsSubmitting(true);
+
+    try {
+      await register(cleanName, formattedEmail, password, passwordConfirmation, {
+        signal: controller.signal,
+      });
+
+      if (isCancelledRef.current || controller.signal.aborted) return;
+      onClose();
+    } catch (err: unknown) {
+      if (isCancelledRef.current || controller.signal.aborted) return;
+      const apiErr = err as ApiError;
+      if (apiErr?.isAborted) return;
+      const firstField = apiErr?.errors ? Object.keys(apiErr.errors)[0] : null;
+      const msg = firstField ? apiErr.errors![firstField][0] : apiErr?.message || 'Registration failed. Please check your credentials.';
+      setClientError(msg);
+    } finally {
+      if (!isCancelledRef.current) {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  /**
+   * Step 1 (OTP Flow): Send OTP to Email or Phone (Optional Registration or Forgot Password)
    */
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -302,7 +401,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     try {
       if (isEmail(cleanInput)) {
-        // Email OTP via Gmail SMTP
+        // Email OTP via SMTP
         const otpType = mode === 'register' ? 'register' : 'forgot_password';
         const res = await sendEmailOtpApi(
           {
@@ -320,6 +419,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setStep('otp');
       } else {
         // Phone OTP via Firebase
+        if (Capacitor.isNativePlatform()) {
+          setClientError('SMS verification requires browser services. Please use direct email registration or sign in with password.');
+          return;
+        }
+
         const cleanPhone = cleanInput.startsWith('+') ? cleanInput : `+91${cleanInput}`;
         if (!recaptchaVerifierRef.current) {
           recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
@@ -348,7 +452,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   /**
-   * Step 2: Validate OTP Code before advancing to Password Panel
+   * Step 2 (OTP Flow): Validate OTP Code before advancing to Password Panel
    */
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -415,7 +519,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   /**
-   * Step 3: Set Password and Complete Registration or Reset
+   * Step 3 (OTP Flow): Set Password and Complete Registration or Reset
    */
   const handleCompleteWithPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -424,6 +528,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     if (password.length < 8) {
       setClientError('Password must be at least 8 characters long.');
+      return;
+    }
+    if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+      setClientError('Password must include both letters and numbers.');
       return;
     }
     if (password !== passwordConfirmation) {
@@ -549,7 +657,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   : mode === 'login'
                   ? 'Access your saved notes, reminders, and passwords.'
                   : mode === 'register'
-                  ? 'Start organizing your personal information securely.'
+                  ? 'Create your encrypted personal vault in seconds.'
                   : 'Verify your email to reset your account password.'}
               </p>
             </div>
@@ -590,7 +698,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             ============================================================= */}
         {mode === 'login' && step === 'details' && (
           <div className="auth-form-wrapper">
-            {/* Sleek Google Sign-In Button */}
+            {/* Google Sign-In Button */}
             <button
               type="button"
               className="auth-google-btn"
@@ -689,7 +797,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 {isSubmitting ? 'Signing in...' : <>Sign In <ArrowRight size={16} /></>}
               </button>
 
-              {/* Link below sign in button */}
               <div className="auth-switch-text">
                 Don't have an account?{' '}
                 <button
@@ -705,11 +812,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         )}
 
         {/* =============================================================
-            VIEW 2: CREATE ACCOUNT - STEP 1 (Name + Email/Phone, NO Password yet)
+            VIEW 2: CREATE ACCOUNT - DIRECT 1-CLICK REGISTRATION
             ============================================================= */}
-        {mode === 'register' && step === 'details' && (
+        {mode === 'register' && step === 'details' && !useOtpRegister && (
           <div className="auth-form-wrapper">
-            {/* Sleek Google Sign-In Button */}
+            {/* Google Sign-In Button */}
             <button
               type="button"
               className="auth-google-btn"
@@ -744,10 +851,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </button>
 
             <div className="auth-divider">
-              <span>or</span>
+              <span>or create with email</span>
             </div>
 
-            <form onSubmit={handleSendOtp} className="auth-form">
+            <form onSubmit={handleDirectRegister} className="auth-form">
               <div className="form-group">
                 <label htmlFor="reg-name" className="form-label">Full Name</label>
                 <div className="input-with-icon">
@@ -765,11 +872,132 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label htmlFor="reg-identifier" className="form-label">Email or Phone</label>
+                <label htmlFor="reg-identifier" className="form-label">Email Address</label>
                 <div className="input-with-icon">
                   <Mail size={18} className="input-icon" />
                   <input
                     id="reg-identifier"
+                    type="text"
+                    className="form-input"
+                    placeholder="name@example.com"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="reg-password" className="form-label">Password</label>
+                <div className="input-with-icon">
+                  <KeyRound size={18} className="input-icon" />
+                  <input
+                    id="reg-password"
+                    type={showPassword ? 'text' : 'password'}
+                    className="form-input"
+                    placeholder="Min 8 characters (letters & numbers)"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle-btn"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="reg-password-confirm" className="form-label">Confirm Password</label>
+                <div className="input-with-icon">
+                  <KeyRound size={18} className="input-icon" />
+                  <input
+                    id="reg-password-confirm"
+                    type={showPasswordConfirm ? 'text' : 'password'}
+                    className="form-input"
+                    placeholder="Confirm password"
+                    value={passwordConfirmation}
+                    onChange={(e) => setPasswordConfirmation(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle-btn"
+                    onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                    aria-label={showPasswordConfirm ? 'Hide password' : 'Show password'}
+                  >
+                    {showPasswordConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary btn-block"
+                disabled={isSubmitting}
+                style={{ width: '100%', marginTop: '0.5rem' }}
+              >
+                {isSubmitting ? 'Creating Vault...' : <>Create Vault Account <ArrowRight size={16} /></>}
+              </button>
+
+              <div className="auth-switch-text" style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'center' }}>
+                <div>
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    className="auth-link-btn"
+                    onClick={() => handleModeSwitch('login')}
+                  >
+                    Sign in
+                  </button>
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    className="auth-link-btn"
+                    style={{ fontSize: '0.78rem', opacity: 0.8 }}
+                    onClick={() => setUseOtpRegister(true)}
+                  >
+                    Prefer email verification code? Verify with code
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* =============================================================
+            VIEW 2 (ALTERNATE): OTP REGISTRATION (If user chooses OTP)
+            ============================================================= */}
+        {mode === 'register' && step === 'details' && useOtpRegister && (
+          <div className="auth-form-wrapper">
+            <form onSubmit={handleSendOtp} className="auth-form">
+              <div className="form-group">
+                <label htmlFor="reg-name-otp" className="form-label">Full Name</label>
+                <div className="input-with-icon">
+                  <User size={18} className="input-icon" />
+                  <input
+                    id="reg-name-otp"
+                    type="text"
+                    className="form-input"
+                    placeholder="Full name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="reg-identifier-otp" className="form-label">Email or Phone</label>
+                <div className="input-with-icon">
+                  <Mail size={18} className="input-icon" />
+                  <input
+                    id="reg-identifier-otp"
                     type="text"
                     className="form-input"
                     placeholder="Email or phone"
@@ -790,13 +1018,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
 
               <div className="auth-switch-text">
-                Already have an account?{' '}
                 <button
                   type="button"
                   className="auth-link-btn"
-                  onClick={() => handleModeSwitch('login')}
+                  onClick={() => setUseOtpRegister(false)}
                 >
-                  Sign in
+                  ← Back to instant registration
                 </button>
               </div>
             </form>
@@ -946,7 +1173,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   id="create-password"
                   type={showPassword ? 'text' : 'password'}
                   className="form-input"
-                  placeholder="Password (min 8 chars)"
+                  placeholder="Password (min 8 chars, letters & numbers)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoFocus
@@ -971,13 +1198,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <KeyRound size={18} className="input-icon" />
                 <input
                   id="create-password-confirm"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPasswordConfirm ? 'text' : 'password'}
                   className="form-input"
                   placeholder="Confirm password"
                   value={passwordConfirmation}
                   onChange={(e) => setPasswordConfirmation(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                  aria-label={showPasswordConfirm ? 'Hide password' : 'Show password'}
+                >
+                  {showPasswordConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 

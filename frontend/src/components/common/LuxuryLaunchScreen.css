@@ -1,4 +1,4 @@
-/* RemiVault Luxury Launch & Vault Lock Loading Screen */
+/* RemiVault Simple & Elegant Launch Splash Screen */
 
 .rv-launch-overlay {
   position: fixed;
@@ -9,586 +9,145 @@
   align-items: center;
   justify-content: center;
   background-color: #07090e;
-  background-image: 
-    radial-gradient(circle at 50% 30%, rgba(245, 158, 11, 0.12) 0%, transparent 55%),
-    radial-gradient(circle at 20% 80%, rgba(79, 70, 229, 0.10) 0%, transparent 45%),
-    radial-gradient(circle at 80% 75%, rgba(16, 185, 129, 0.08) 0%, transparent 45%),
-    radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.95) 0%, #07090e 100%);
+  background-image: radial-gradient(circle at 50% 45%, rgba(245, 158, 11, 0.08) 0%, transparent 60%);
   color: #f8fafc;
   font-family: var(--font-body, 'Plus Jakarta Sans', sans-serif);
   overflow: hidden;
   user-select: none;
-  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), filter 0.65s ease;
-  will-change: opacity, transform, filter;
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
 }
 
 .rv-launch-overlay.exiting {
   opacity: 0;
-  transform: scale(1.04);
+  transform: scale(1.02);
+  pointer-events: none;
+}
+
+/* Ambient Subtle Radial Glow */
+.rv-launch-ambient-glow {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  filter: blur(40px);
+  animation: rvPulseGlow 2.5s ease-in-out infinite alternate;
+}
+
+/* Content Container */
+.rv-launch-simple-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  animation: rvSimpleFadeIn 0.3s ease-out forwards;
+}
+
+/* Central Logo Box with Subtle Aura */
+.rv-launch-logo-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rv-launch-logo-aura {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, transparent 75%);
   filter: blur(10px);
   pointer-events: none;
 }
 
-/* Background Cyber Grid / Ambient Glow */
-.rv-launch-ambient-grid {
-  position: absolute;
-  inset: -100px;
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
-  background-size: 40px 40px;
-  opacity: 0.7;
-  pointer-events: none;
-  mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
-  -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
-}
-
-/* Skip / Enter Action */
-.rv-launch-skip-btn {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.75rem;
-  z-index: 10;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.95rem;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: all 0.2s ease;
-  animation: rvFadeIn 0.5s ease 1s backwards;
-}
-
-.rv-launch-skip-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(245, 158, 11, 0.4);
-  color: #fbbf24;
-  transform: translateY(-1px);
-}
-
-/* Central Stage Container */
-.rv-launch-stage {
-  position: relative;
-  width: 100%;
-  max-width: 820px;
-  padding: 1.5rem 1.5rem;
+/* Title & Subtitle */
+.rv-launch-title-group {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2.25rem;
-  z-index: 2;
-}
-
-/* Vault Hero Core with Rotating Combination Dials */
-.rv-vault-hero-wrapper {
-  position: relative;
-  width: 220px;
-  height: 220px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Pulsing Radial Biometric Aura */
-.rv-vault-aura {
-  position: absolute;
-  width: 280px;
-  height: 280px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, rgba(245, 158, 11, 0.06) 50%, transparent 70%);
-  animation: rvAuraPulse 3.5s ease-in-out infinite;
-  pointer-events: none;
-}
-
-/* Outer Rotating Etched Vault Dial (Clockwise) */
-.rv-dial-outer {
-  position: absolute;
-  width: 216px;
-  height: 216px;
-  border-radius: 50%;
-  border: 1.5px dashed rgba(245, 158, 11, 0.35);
-  box-shadow: 0 0 25px rgba(245, 158, 11, 0.15), inset 0 0 20px rgba(245, 158, 11, 0.08);
-  animation: rvRotateCw 28s linear infinite;
-}
-
-.rv-dial-outer::before {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #f59e0b;
-  box-shadow: 0 0 10px #f59e0b, 0 0 20px #f59e0b;
-}
-
-/* Inner Tick Vault Dial (Counter-Clockwise) */
-.rv-dial-inner {
-  position: absolute;
-  width: 172px;
-  height: 172px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(99, 102, 241, 0.6);
-  border-bottom-color: rgba(16, 185, 129, 0.6);
-  animation: rvRotateCcw 18s linear infinite;
-}
-
-.rv-dial-inner::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px #10b981;
-}
-
-/* Central Vault Crest Housing */
-.rv-vault-crest-card {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  border-radius: 30px;
-  background: linear-gradient(145deg, #161d2f, #0d121f);
-  border: 1.5px solid rgba(245, 158, 11, 0.35);
-  box-shadow: 
-    0 12px 35px rgba(0, 0, 0, 0.7),
-    0 0 35px rgba(245, 158, 11, 0.25),
-    inset 0 1px 1px rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 3;
-  animation: rvFloatHero 4s ease-in-out infinite;
-}
-
-/* Vault Lock Status Badge Pill on Emblem */
-.rv-vault-badge-pill {
-  position: absolute;
-  bottom: -12px;
-  display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.25rem 0.65rem;
-  background: rgba(10, 14, 23, 0.95);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  border-radius: 9999px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #fbbf24;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 0 10px rgba(245, 158, 11, 0.25);
-  white-space: nowrap;
 }
 
-/* 4 Category Modules Grid (The 4 Vault Pillars) */
-.rv-vault-modules-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-  width: 100%;
+.rv-launch-brand-title {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #ffffff 30%, #e2e8f0 70%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.rv-module-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  padding: 1rem 0.95rem;
-  border-radius: 14px;
-  background: rgba(16, 21, 34, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
-}
-
-.rv-module-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-  transition: all 0.4s ease;
-}
-
-/* Module Active State (Encrypting / Securing) */
-.rv-module-card.active {
-  background: rgba(22, 29, 47, 0.85);
-  border-color: rgba(245, 158, 11, 0.3);
-  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.15);
-  transform: translateY(-2px);
-}
-
-.rv-module-card.active::before {
-  background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
-}
-
-/* Module Locked State (Safely Secured) */
-.rv-module-card.locked {
-  background: rgba(16, 25, 40, 0.9);
-  border-color: rgba(16, 185, 129, 0.35);
-  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.12);
-  transform: translateY(-2px);
-}
-
-.rv-module-card.locked::before {
-  background: linear-gradient(90deg, #10b981, #34d399, #10b981);
-}
-
-/* Shimmer Light Sweep on Module Lock */
-.rv-module-card.locked .rv-module-shimmer {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 20%,
-    rgba(255, 255, 255, 0.12) 50%,
-    transparent 80%
-  );
-  transform: translateX(-100%);
-  animation: rvShimmerPass 0.8s ease-out forwards;
-  pointer-events: none;
-}
-
-.rv-module-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.65rem;
-}
-
-.rv-module-icon-wrap {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.rv-module-card.pending .rv-module-icon-wrap {
-  background: rgba(255, 255, 255, 0.05);
-  color: #94a3b8;
-}
-
-.rv-module-card.active .rv-module-icon-wrap {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fbbf24;
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
-}
-
-.rv-module-card.locked .rv-module-icon-wrap {
-  background: rgba(16, 185, 129, 0.18);
-  color: #34d399;
-  box-shadow: 0 0 14px rgba(16, 185, 129, 0.3);
-}
-
-/* Mini Lock Indicator */
-.rv-module-lock-badge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  font-size: 0.65rem;
-  transition: all 0.3s ease;
-}
-
-.rv-module-card.pending .rv-module-lock-badge {
-  color: rgba(255, 255, 255, 0.3);
-}
-
-.rv-module-card.active .rv-module-lock-badge {
-  color: #fbbf24;
-  animation: rvSpin 1.4s linear infinite;
-}
-
-.rv-module-card.locked .rv-module-lock-badge {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34d399;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
-}
-
-.rv-module-title {
+.rv-launch-status-text {
+  margin: 0;
   font-size: 0.82rem;
-  font-weight: 700;
-  color: #f1f5f9;
-  margin: 0 0 0.2rem 0;
-  letter-spacing: -0.01em;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.rv-module-spec {
-  font-size: 0.68rem;
-  color: #94a3b8;
-  margin: 0 0 0.55rem 0;
-  font-family: var(--font-mono, monospace);
-}
-
-.rv-module-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.65rem;
-  font-weight: 600;
-  border-radius: 4px;
-  padding: 0.15rem 0.45rem;
-  width: fit-content;
-  transition: all 0.3s ease;
-}
-
-.rv-module-card.pending .rv-module-status-pill {
-  background: rgba(255, 255, 255, 0.05);
-  color: #64748b;
-}
-
-.rv-module-card.active .rv-module-status-pill {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-}
-
-.rv-module-card.locked .rv-module-status-pill {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-}
-
-/* Bottom Progress Track & Telemetry Feed */
-.rv-launch-footer {
-  width: 100%;
-  max-width: 540px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.rv-progress-meta-row {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  color: #94a3b8;
-}
-
-.rv-telemetry-text {
-  font-weight: 600;
-  color: #e2e8f0;
-  letter-spacing: 0.01em;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.rv-telemetry-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #f59e0b;
-  box-shadow: 0 0 8px #f59e0b;
-  animation: rvPulse 1.2s ease-in-out infinite alternate;
-}
-
-.rv-progress-percent {
-  font-family: var(--font-mono, monospace);
-  font-weight: 700;
-  color: #fbbf24;
-  font-size: 0.85rem;
-}
-
-/* Progress Track Bar */
-.rv-progress-bar-track {
-  position: relative;
-  width: 100%;
-  height: 6px;
+/* Minimalist Micro Progress Bar */
+.rv-launch-loader-track {
+  width: 140px;
+  height: 3px;
   background: rgba(255, 255, 255, 0.08);
   border-radius: 9999px;
   overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.rv-progress-bar-fill {
   position: relative;
-  height: 100%;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, #4f46e5 0%, #f59e0b 55%, #10b981 100%);
-  box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
-  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: width;
+  margin-top: 0.25rem;
 }
 
-.rv-progress-spark {
+.rv-launch-loader-bar {
   position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 0 8px #ffffff, 0 0 16px #fbbf24;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 50%;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24, #10b981);
+  border-radius: 9999px;
+  animation: rvIndeterminate 1.2s ease-in-out infinite;
 }
 
-/* Security Compliance & Cryptographic Notice */
-.rv-security-compliance-tag {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 0.7rem;
-  color: #64748b;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.rv-security-compliance-tag span {
-  color: #94a3b8;
-}
-
-/* Keyframe Animations */
-@keyframes rvRotateCw {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes rvRotateCcw {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(-360deg); }
-}
-
-@keyframes rvAuraPulse {
-  0% { transform: scale(0.92); opacity: 0.35; }
-  50% { transform: scale(1.12); opacity: 0.75; }
-  100% { transform: scale(0.92); opacity: 0.35; }
-}
-
-@keyframes rvFloatHero {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-@keyframes rvShimmerPass {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-@keyframes rvSpin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes rvPulse {
-  0% { opacity: 0.4; transform: scale(0.85); }
-  100% { opacity: 1; transform: scale(1.15); }
-}
-
-@keyframes rvFadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Responsive adjustments for Tablets & Mobile Screens */
-@media (max-width: 768px) {
-  .rv-launch-stage {
-    padding: 1.25rem 1rem;
-    gap: 1.75rem;
+@keyframes rvIndeterminate {
+  0% {
+    left: -50%;
+    width: 30%;
   }
-
-  .rv-vault-hero-wrapper {
-    width: 180px;
-    height: 180px;
+  50% {
+    left: 25%;
+    width: 60%;
   }
-
-  .rv-dial-outer {
-    width: 176px;
-    height: 176px;
-  }
-
-  .rv-dial-inner {
-    width: 140px;
-    height: 140px;
-  }
-
-  .rv-vault-aura {
-    width: 220px;
-    height: 220px;
-  }
-
-  .rv-vault-crest-card {
-    width: 96px;
-    height: 96px;
-    border-radius: 24px;
-  }
-
-  .rv-vault-modules-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-  }
-
-  .rv-module-card {
-    padding: 0.85rem 0.75rem;
-  }
-
-  .rv-module-title {
-    font-size: 0.78rem;
-  }
-
-  .rv-module-spec {
-    font-size: 0.65rem;
-    margin-bottom: 0.4rem;
-  }
-
-  .rv-module-status-pill {
-    font-size: 0.6rem;
-  }
-
-  .rv-telemetry-text {
-    font-size: 0.7rem;
+  100% {
+    left: 100%;
+    width: 30%;
   }
 }
 
-@media (max-width: 420px) {
-  .rv-vault-hero-wrapper {
-    width: 160px;
-    height: 160px;
+@keyframes rvPulseGlow {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
   }
-
-  .rv-dial-outer {
-    width: 156px;
-    height: 156px;
+  100% {
+    transform: scale(1.1);
+    opacity: 1;
   }
+}
 
-  .rv-dial-inner {
-    width: 124px;
-    height: 124px;
+@keyframes rvSimpleFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
   }
-
-  .rv-vault-crest-card {
-    width: 84px;
-    height: 84px;
-  }
-
-  .rv-module-card {
-    padding: 0.75rem 0.65rem;
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }

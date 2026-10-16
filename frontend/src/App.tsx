@@ -738,11 +738,11 @@ const RemiVaultApp: React.FC = () => {
         onClose={() => setIsNotifPromptOpen(false)}
       />
 
-      {/* Superb Luxury App Launch & Vault Lock Loading Screen */}
+      {/* Clean & Elegant Loading Splash Screen */}
       {(showLaunchScreen || isManualLaunchPreview) && (
         <LuxuryLaunchScreen
           isDataReady={!isAuthLoading}
-          minDurationMs={isManualLaunchPreview ? 2400 : 2200}
+          minDurationMs={isManualLaunchPreview ? 1000 : 400}
           isManualPreview={isManualLaunchPreview}
           onFinish={() => {
             setShowLaunchScreen(false);

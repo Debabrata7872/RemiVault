@@ -14,3 +14,7 @@ Route::get('/preview-email/otp', function () {
     return (new \App\Mail\OtpMail($code, $type, $name));
 });
 
+// Mobile App Google Authentication (Opens in Chrome Custom Tab to bypass WebView block)
+Route::get('/auth/google-mobile', function () {
+    return view('auth.google-mobile');
+});

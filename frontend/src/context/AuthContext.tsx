@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { 
   getStoredToken, 
   setStoredToken, 
@@ -206,6 +208,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLocked(false);
     }
   };
+
+  // Deep Link listener for Google Auth callback on Android/Capacitor
+  useEffect(() => {
+    let subPromise: Promise<{ remove: () => Promise<void> }> | null = null;
+    try {
+      subPromise = CapacitorApp.addListener('appUrlOpen', async (data: { url: string }) => {
+        if (data.url && data.url.includes('auth-callback')) {
+          try {
+            await Browser.close();
+          } catch {
+            // ignore
+          }
+
+          try {
+            const rawUrl = data.url.replace(/^remivault:\/\//, 'https://remivault.local/');
+            const urlObj = new URL(rawUrl);
+            const token = urlObj.searchParams.get('token');
+            const userJson = urlObj.searchParams.get('user');
+
+            if (token && userJson) {
+              const parsedUser = JSON.parse(decodeURIComponent(userJson)) as User;
+              handleAuthSuccess(parsedUser, token, parsedUser.avatar_url);
+            }
+          } catch (err) {
+            console.error('Deep link auth error:', err);
+          }
+        }
+      });
+    } catch {
+      // Not on native mobile platform
+    }
+
+    return () => {
+      if (subPromise) {
+        subPromise.then((s) => s.remove()).catch(() => {});
+      }
+    };
+  }, []);
 
   const login = async (email: string, password: string, options?: RequestOptions): Promise<void> => {
     setError(null);

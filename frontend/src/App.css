@@ -4803,20 +4803,65 @@ input[type="datetime-local"] {
 .desktop-text {
   display: inline !important;
 }
+.mobile-total-stat-pill {
+  display: none;
+}
+.mobile-only-trust-tag {
+  display: none;
+}
+.desktop-only-text,
+.desktop-only-card {
+  display: block;
+}
 
 /* =========================================================================
-   RESPONSIVE MOBILE VIEW (<= 640px)
+   RESPONSIVE MOBILE VIEW (<= 768px: Mobile Browser & Installed App)
    - Streamlined, high-density native-app interface for mobile
    - Hides verbose descriptions/details paragraphs on mobile only
    - Converts 4 Hub Cards into a sleek 2x2 interactive touch grid
    - Desktop view retains full paragraphs, full descriptions, and wide layout
    ========================================================================= */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .mobile-text {
     display: inline !important;
   }
   .desktop-text {
     display: none !important;
+  }
+  .desktop-only-text,
+  .desktop-only-card {
+    display: none !important;
+  }
+  .mobile-total-stat-pill {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.28);
+    color: #fbbf24;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+  .overview-header-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 0.35rem;
+  }
+  .mobile-only-trust-tag {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.85rem 1rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-align: center;
   }
 
   /* 1. HIDE ALL VERBOSE DESCRIPTIONS & SUBTITLES ON MOBILE ONLY */

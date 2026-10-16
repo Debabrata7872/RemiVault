@@ -9,7 +9,8 @@ import {
   AlertTriangle, 
   CheckCircle2, 
   Clock,
-  Loader2
+  Loader2,
+  ShieldCheck
 } from 'lucide-react';
 import { DashboardSkeleton } from '../common/skeletons';
 
@@ -50,33 +51,42 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
   };
 
   const hasUrgentItems = urgentDatesCount > 0 || upcomingRemindersCount > 0;
+  const totalItems = vaultCount + datesCount + remindersCount + notesCount;
 
   return (
     <div className="user-overview-container">
-      {/* Welcome Hero Banner */}
+      {/* Welcome Hero Banner - Compact & Clean on Mobile */}
       <section className="overview-welcome-card">
         <div className="overview-welcome-content">
-          {isLoading ? (
-            <div className="overview-welcome-pill loading">
-              <Loader2 size={12} className="spin" />
-              <span>Syncing vault credentials...</span>
+          <div className="overview-header-top-row">
+            {isLoading ? (
+              <div className="overview-welcome-pill loading">
+                <Loader2 size={12} className="spin" />
+                <span>Syncing credentials...</span>
+              </div>
+            ) : (
+              <div className="overview-welcome-pill">
+                <span className="overview-pulse-dot"></span>
+                <span>Personal Vault Active</span>
+              </div>
+            )}
+            {/* Mobile Important Points Badge */}
+            <div className="mobile-total-stat-pill">
+              <ShieldCheck size={13} color="#f59e0b" />
+              <span>{totalItems} items secured</span>
             </div>
-          ) : (
-            <div className="overview-welcome-pill">
-              <span className="overview-pulse-dot"></span>
-              <span>Personal Vault Active</span>
-            </div>
-          )}
+          </div>
+
           <h2 className="overview-greeting">
             {getGreeting()}, <span className="overview-name-gradient">{userName}</span> 👋
           </h2>
-          <p className="overview-subtitle">
+          <p className="overview-subtitle desktop-only-text">
             Your personal reminders, critical dates, passwords, and private notes are safely isolated and encrypted.
           </p>
         </div>
       </section>
 
-      {/* 4 Interactive Hub Cards */}
+      {/* 4 Interactive Hub Cards - Compact Stat Tiles on Mobile */}
       <div className="overview-modules-grid">
         {/* Password Vault Card */}
         <div 
@@ -93,8 +103,8 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
               {isLoading ? <span className="metric-skeleton-pulse" /> : vaultCount}
             </span>
           </div>
-          <h3 className="overview-card-title">Password Vault</h3>
-          <p className="overview-card-desc">
+          <h3 className="overview-card-title">Passwords</h3>
+          <p className="overview-card-desc desktop-only-text">
             Safely store your passwords, logins, and accounts in complete privacy.
           </p>
           <div className="overview-card-footer">
@@ -102,7 +112,7 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
               <span className="desktop-text">Open Vault</span>
               <span className="mobile-text">Open</span>
             </span>
-            <ArrowRight size={15} />
+            <ArrowRight size={14} />
           </div>
         </div>
 
@@ -122,7 +132,7 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             </span>
           </div>
           <h3 className="overview-card-title">Important Dates</h3>
-          <p className="overview-card-desc">
+          <p className="overview-card-desc desktop-only-text">
             Passports, driver licenses, renewals, and anniversaries with automated countdowns.
           </p>
           <div className="overview-card-footer">
@@ -130,7 +140,7 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
               <span className="desktop-text">Track Milestones</span>
               <span className="mobile-text">View</span>
             </span>
-            <ArrowRight size={15} />
+            <ArrowRight size={14} />
           </div>
         </div>
 
@@ -149,11 +159,8 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
               {isLoading ? <span className="metric-skeleton-pulse" /> : remindersCount}
             </span>
           </div>
-          <h3 className="overview-card-title">
-            <span className="desktop-text">Time-Sensitive Reminders</span>
-            <span className="mobile-text">Reminders</span>
-          </h3>
-          <p className="overview-card-desc">
+          <h3 className="overview-card-title">Reminders</h3>
+          <p className="overview-card-desc desktop-only-text">
             Stay on top of critical tasks with UTC normalized scheduling and snooze controls.
           </p>
           <div className="overview-card-footer">
@@ -161,7 +168,7 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
               <span className="desktop-text">View Alerts</span>
               <span className="mobile-text">Alerts</span>
             </span>
-            <ArrowRight size={15} />
+            <ArrowRight size={14} />
           </div>
         </div>
 
@@ -180,11 +187,8 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
               {isLoading ? <span className="metric-skeleton-pulse" /> : notesCount}
             </span>
           </div>
-          <h3 className="overview-card-title">
-            <span className="desktop-text">Personal Notes</span>
-            <span className="mobile-text">Notes</span>
-          </h3>
-          <p className="overview-card-desc">
+          <h3 className="overview-card-title">Personal Notes</h3>
+          <p className="overview-card-desc desktop-only-text">
             Quick, distraction-free markdown notes, pinned thoughts, and color-coded lists.
           </p>
           <div className="overview-card-footer">
@@ -192,12 +196,12 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
               <span className="desktop-text">Read Notes</span>
               <span className="mobile-text">Notes</span>
             </span>
-            <ArrowRight size={15} />
+            <ArrowRight size={14} />
           </div>
         </div>
       </div>
 
-      {/* Priority Focus Widget */}
+      {/* Priority Focus Widget - Focused on Action Items on Mobile */}
       <section className="overview-priority-widget">
         <div className="priority-widget-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -206,7 +210,7 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
             </div>
             <div>
               <h3 style={{ fontSize: '1.05rem', margin: 0, fontWeight: 700 }}>Priority Status</h3>
-              <p className="priority-widget-desc" style={{ margin: '0.15rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              <p className="priority-widget-desc desktop-only-text" style={{ margin: '0.15rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                 Items that require your immediate attention
               </p>
             </div>
@@ -254,11 +258,11 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
         ) : (
           <div className="priority-empty-state">
             <div className="priority-empty-icon">
-              <CheckCircle2 size={24} color="#10b981" />
+              <CheckCircle2 size={20} color="#10b981" />
             </div>
             <div>
-              <h4 style={{ margin: 0, fontSize: '0.95rem' }}>You're all caught up!</h4>
-              <p className="priority-empty-desc" style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              <h4 style={{ margin: 0, fontSize: '0.92rem' }}>You're all caught up!</h4>
+              <p className="priority-empty-desc desktop-only-text" style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                 No overdue reminders or critical document expirations today.
               </p>
             </div>
@@ -266,8 +270,8 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
         )}
       </section>
 
-      {/* Security & Multi-User Privacy Statement */}
-      <section className="overview-security-card">
+      {/* Security & Multi-User Privacy Statement - Hidden on Mobile to Avoid Clutter */}
+      <section className="overview-security-card desktop-only-card">
         <div className="security-card-inner">
           <div className="security-card-left">
             <div className="security-shield-icon">
@@ -287,6 +291,12 @@ export const UserOverview: React.FC<UserOverviewProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Mobile Subtle Security Tagline */}
+      <div className="mobile-only-trust-tag">
+        <Sparkles size={12} color="#f59e0b" />
+        <span>AES-256 Encrypted • Zero-Knowledge Session</span>
+      </div>
     </div>
   );
 };

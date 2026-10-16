@@ -1,5 +1,10 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { 
+  initializeAuth, 
+  indexedDBLocalPersistence, 
+  browserLocalPersistence, 
+  GoogleAuthProvider 
+} from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBgc2Dap9csYQ0foT_1L0fGQgDO4GiCBZc",
@@ -12,8 +17,11 @@ const firebaseConfig = {
 };
 
 export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+export const auth = initializeAuth(app, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence]
+});
 export const googleProvider = new GoogleAuthProvider();
 // Request email and profile scopes
 googleProvider.addScope('email');
 googleProvider.addScope('profile');
+
