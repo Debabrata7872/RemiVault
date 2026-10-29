@@ -108,18 +108,45 @@
   - Seamless fade-out transition into the main application.
   - *Status:* Completed.
 
-- [ ] **13. Smart In-App Install Prompt (.APK / Device Compatibility Banner)**
-  - Periodic, non-intrusive banner/modal popup detecting mobile device compatibility and offering one-click install/download of the standalone `.apk` app.
-  - Dismissal cooldown logic (prompts periodically, remembers user dismissals so it doesn't annoy on every navigation/refresh).
-  - Device detection (Android user agent vs desktop) to offer the appropriate `.apk` package or PWA install.
+- [x] **13. Smart In-App Install Prompt (.APK / Device Compatibility Banner)**
+  - Periodic, non-intrusive floating banner & comprehensive modal detecting mobile device compatibility and offering one-click download/installation of the standalone `.apk` app.
+  - Device detection distinguishing Android mobile browsers, desktop PCs, Apple iOS devices, and standalone native platforms.
+  - Native platform detection via `Capacitor.isNativePlatform()` ensuring installed APK users never see prompts.
+  - Non-intrusive dismissal cooldown logic (48-hour cooldown on dismissal, 14-day cooldown upon APK download).
+  - High-fidelity `InstallAppModal` with direct 4-step installation walkthrough, features overview, offline SVG QR code generator for scanning from desktop to phone, and PWA installation support.
+  - Integrated "Mobile App (.APK) & Desktop" drawer in Settings allowing instant manual download and access anytime.
+  - Backend `/api/app/version` and `/api/download/apk` endpoints with package-archive headers preventing browser `.zip` naming quirks.
+  - *Status:* Completed.
 
-- [ ] **14. App Version Upgrade Notification & Download Management**
-  - In-app version check against backend endpoint (`/api/app/version` or update manifest).
-  - When a new version is released: shows an update alert banner/card announcing the new version.
-  - Displays explicit download size (e.g. `Update size: 12.4 MB`) so users are aware of their internet/data usage before downloading.
-  - If user clicks "Download & Update", initiates immediate update/download.
-  - If deferred or ignored: snoozes and periodically reminds the user after several logins or next day until updated.
+- [x] **14. App Version Upgrade Notification & Download Management**
+  - In-app version check against backend endpoint (`/api/app/version`) with semver and version code comparison (`compareSemver`).
+  - Sleek `AppUpdateBanner` announcing new version availability (`v0.2.0 ➔ v0.3.0`) with animated pulse indicators and non-blocking layout.
+  - Prominent bandwidth awareness badge explicitly displaying download size (`17.5 MB`) so users are aware of their mobile data usage before downloading.
+  - One-click "Download & Update" action triggering instant APK download with live feedback.
+  - Periodic snooze logic (`snoozeUpdate`): hides alert for 24 hours, but automatically reminds the user on the next day or after 3 app logins until updated.
+  - Comprehensive `AppUpdateModal` with release notes, data usage advisories, and categorized changelog bullets.
+  - Settings Modal integration with "Check Updates" button and developer simulation controls (`/api/app/toggle-simulated-release`).
+  - *Status:* Completed.
 
-- [ ] **15. Post-Update "What's New" Changelog Modal (Auto-Dismiss by Content Height)**
-  - After a successful upgrade (detected by version bump in local storage/app state), displays a sleek "What's New in vX.X.X" release notes modal highlighting new features and bug fixes.
-  - Timed auto-close feature calibrated dynamically based on content length/height (longer release notes stay visible proportionally longer, or closes after reading time if untouched), while also allowing manual dismissal with a single tap.
+- [x] **15. Post-Update "What's New" Changelog Modal (Auto-Dismiss by Content Height)**
+  - Automatic post-update detection (`shouldShowWhatsNew`) triggering on first launch after a version upgrade or initial deployment.
+  - Interactive, luxury fintech `WhatsNewModal` highlighting features, security updates, and performance optimizations.
+  - Dynamic content-height-calibrated auto-dismiss timer (`calculateAutoDismissDuration`): accurately measures scrollable DOM height and changelog density to scale the countdown duration proportionally (10s to 32s).
+  - Hover, scroll, and touch detection automatically pausing the auto-close timer into "reading mode".
+  - Sleek visual countdown progress bar with manual toggle (Pause / Resume timer).
+  - Instant single-tap dismissal via "Got It, Explore Vault" CTA button, top-right close icon, or Escape key.
+  - Settings Modal integration with a "View What's New" replay button allowing users to review release notes anytime.
+  - *Status:* Completed.
+
+- [ ] **16. Native Mobile Bottom Navigation Bar (Thumb Reachability & Safe-Area Insets)**
+  - Fixed, frosted-glass bottom tab navigation bar for mobile viewports (`<= 768px`) and standalone Android APK.
+  - One-handed thumb reachability for instantaneous switching across Dashboard, Password Vault, Important Dates, Reminders, and Personal Notes.
+  - Native safe-area inset support (`env(safe-area-inset-bottom)`) accommodating modern Android gesture navigation bars and edge-to-edge displays.
+
+- [ ] **17. Interactive Landing Page Hero Preview (Interactive Live Vault Demo)**
+  - Interactive live vault demo card right in the public hero section.
+  - Interactive password reveal toggle with cryptographic obfuscation animation, auto-lock countdown timer simulation, and real-time encryption flip to demonstrate zero-knowledge security to new visitors before sign-up.
+
+- [ ] **18. Tactile Haptic Feedback on Mobile (PIN Entry & Mechanical Dial Actions)**
+  - Subtle physical haptic tick vibrations (`@capacitor/haptics` on Android native app and Web Vibration API fallback) on 4-digit PIN button presses, lock/unlock triggers, combination dials, and credential copying.
+  - Simulates the tactile sensation of a precision physical mechanical vault dial in the user's hand.

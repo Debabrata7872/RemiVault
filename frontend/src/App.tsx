@@ -41,6 +41,18 @@ import { NotificationToast } from './components/notifications/NotificationToast'
 import { useNotificationScheduler } from './hooks/useNotificationScheduler';
 import { initServiceWorker, shouldShowPermissionPrompt } from './services/notificationService';
 import { LuxuryLaunchScreen } from './components/common/LuxuryLaunchScreen';
+import { InstallPromptBanner, InstallAppModal } from './components/install';
+import { AppUpdateBanner, AppUpdateModal } from './components/update';
+import { WhatsNewModal } from './components/whatsNew';
+import { APP_VERSION } from './config/version';
+import { shouldShowWhatsNew } from './services/whatsNewService';
+import { 
+  checkForAppUpdate, 
+  snoozeUpdate, 
+  recordAppOpenForUpdateCheck, 
+  type AppUpdateInfo,
+  type UpdateCheckResult
+} from './services/versionUpdateService';
 import './App.css';
 
 type WorkspaceTab = 'overview' | 'vault' | 'dates' | 'reminders' | 'notes';
@@ -151,6 +163,60 @@ const RemiVaultApp: React.FC = () => {
   // Friendly In-App Notification Permission Prompt Modal State
   const [isNotifPromptOpen, setIsNotifPromptOpen] = useState<boolean>(false);
 
+  // Smart In-App Install Prompt (.APK Download) State
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
+  const [installModalTab, setInstallModalTab] = useState<'android' | 'desktop' | 'qr'>('android');
+
+  // Version Upgrade & Release Notification State (Step 14)
+  const [availableUpdate, setAvailableUpdate] = useState<AppUpdateInfo | null>(null);
+  const [isUpdateBannerVisible, setIsUpdateBannerVisible] = useState<boolean>(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState<boolean>(false);
+
+  // Post-Update "What's New" Changelog Modal State (Step 15)
+  const [isWhatsNewOpen, setIsWhatsNewOpen] = useState<boolean>(false);
+
+  // Check for app version updates against backend manifest
+  const runUpdateCheck = useCallback(async (force = false, simulate = false): Promise<UpdateCheckResult | null> => {
+    try {
+      const res = await checkForAppUpdate({ forceCheck: force, simulate });
+      if (res.updateAvailable && res.updateInfo) {
+        setAvailableUpdate(res.updateInfo);
+        if (!res.isSnoozed || force) {
+          setIsUpdateBannerVisible(true);
+        }
+      } else {
+        if (force) {
+          setAvailableUpdate(null);
+          setIsUpdateBannerVisible(false);
+        }
+      }
+      return res;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // Periodic and cold-start version check
+  useEffect(() => {
+    recordAppOpenForUpdateCheck();
+    const timer = setTimeout(() => {
+      runUpdateCheck();
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [runUpdateCheck]);
+
+  // Post-Update "What's New" Release Notes Modal Trigger (Step 15)
+  useEffect(() => {
+    if (!showLaunchScreen && !isManualLaunchPreview) {
+      if (shouldShowWhatsNew()) {
+        const timer = setTimeout(() => {
+          setIsWhatsNewOpen(true);
+        }, 1800);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [showLaunchScreen, isManualLaunchPreview]);
+
   // Initialize Service Worker for Android status bar & desktop tray notifications
   useEffect(() => {
     initServiceWorker();
@@ -204,7 +270,7 @@ const RemiVaultApp: React.FC = () => {
           <BrandLogo 
             size={38}
             showText={true}
-            badgeText="v0.2.0"
+            badgeText={`v${APP_VERSION}`}
             onClick={() => setWorkspaceTab('overview')}
           />
 
@@ -307,6 +373,22 @@ const RemiVaultApp: React.FC = () => {
           )}
         </div>
       </nav>
+
+      {/* App Version Upgrade Alert Banner (Step 14) */}
+      {isUpdateBannerVisible && availableUpdate && !isLocked && !showLaunchScreen && (
+        <AppUpdateBanner
+          updateInfo={availableUpdate}
+          onOpenDetails={() => setIsUpdateModalOpen(true)}
+          onSnooze={() => {
+            snoozeUpdate(availableUpdate.version, 24);
+            setIsUpdateBannerVisible(false);
+          }}
+          onDismiss={() => {
+            snoozeUpdate(availableUpdate.version, 24);
+            setIsUpdateBannerVisible(false);
+          }}
+        />
+      )}
 
       {/* =========================================================================
           VIEW SWITCHER:
@@ -578,6 +660,14 @@ const RemiVaultApp: React.FC = () => {
           setIsSettingsOpen(false);
           setIsManualLaunchPreview(true);
         }}
+        onOpenInstallModal={(tab) => {
+          if (tab) setInstallModalTab(tab);
+          setIsInstallModalOpen(true);
+        }}
+        onCheckUpdates={runUpdateCheck}
+        availableUpdate={availableUpdate}
+        onOpenUpdateModal={() => setIsUpdateModalOpen(true)}
+        onOpenWhatsNew={() => setIsWhatsNewOpen(true)}
       />
 
       {/* Set Profile PIN Modal (Prompted after login if PIN not yet set) */}
@@ -736,6 +826,41 @@ const RemiVaultApp: React.FC = () => {
       <NotificationPromptModal
         isOpen={isNotifPromptOpen}
         onClose={() => setIsNotifPromptOpen(false)}
+      />
+
+      {/* Smart In-App Install Prompt Banner (.APK Download & PWA) */}
+      <InstallPromptBanner 
+        onOpenDetailsModal={() => {
+          setInstallModalTab('android');
+          setIsInstallModalOpen(true);
+        }}
+        disabled={!user || isLocked || showLaunchScreen || isManualLaunchPreview || isAuthModalOpen || isPendingPinSetup}
+      />
+
+      {/* Standalone App & .APK Download Detailed Modal */}
+      <InstallAppModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        initialTab={installModalTab}
+      />
+
+      {/* App Version Upgrade Detailed Modal (Step 14) */}
+      <AppUpdateModal
+        isOpen={isUpdateModalOpen}
+        onClose={() => setIsUpdateModalOpen(false)}
+        updateInfo={availableUpdate}
+        onSnooze={() => {
+          if (availableUpdate) {
+            snoozeUpdate(availableUpdate.version, 24);
+            setIsUpdateBannerVisible(false);
+          }
+        }}
+      />
+
+      {/* Post-Update "What's New" Changelog Modal (Step 15) */}
+      <WhatsNewModal
+        isOpen={isWhatsNewOpen}
+        onClose={() => setIsWhatsNewOpen(false)}
       />
 
       {/* Clean & Elegant Loading Splash Screen */}

@@ -1,7 +1,5 @@
 // RemiVault Service Worker for Push & System Tray Notifications
-const CACHE_NAME = 'remivault-v1';
-
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 

@@ -127,6 +127,98 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 /**
+ * Public App Release & Version Information Endpoint
+ */
+Route::get('/app/version', function () {
+    $manifestFile = storage_path('app/app_release.json');
+    if (file_exists($manifestFile)) {
+        $custom = json_decode(file_get_contents($manifestFile), true);
+        if (is_array($custom)) {
+            return response()->json($custom);
+        }
+    }
+
+    $apkPath = base_path('../frontend/public/downloads/RemiVault.apk');
+    if (!file_exists($apkPath)) {
+        $apkPath = base_path('../frontend/android/app/build/outputs/apk/debug/app-debug.apk');
+    }
+    $sizeBytes = file_exists($apkPath) ? filesize($apkPath) : 18365203;
+    $sizeMb = round($sizeBytes / (1024 * 1024), 1);
+
+    // Dynamic test/simulation support via query param or header
+    $simulate = request()->boolean('simulate_update') || request()->header('X-Simulate-Update') === 'true';
+    $version = $simulate ? '0.3.0' : '0.2.0';
+    $versionCode = $simulate ? 3 : 2;
+
+    return response()->json([
+        'version' => $version,
+        'version_code' => $versionCode,
+        'package_name' => 'com.remivault.app',
+        'apk_filename' => 'RemiVault.apk',
+        'apk_size_bytes' => $sizeBytes,
+        'apk_size_formatted' => $sizeMb . ' MB',
+        'min_android' => 'Android 8.0 (API 26)+',
+        'target_android' => 'Android 14 (API 34)',
+        'download_url' => '/api/download/apk',
+        'release_date' => $simulate ? '2026-10-30' : '2026-10-29',
+        'is_mandatory' => false,
+        'changelog' => $simulate ? [
+            '🚀 Live in-app version upgrade alerts with bandwidth awareness',
+            '⚡ Ultra-smooth progressive hydration & instant vault access',
+            '🔒 Hardware-backed biometric PIN encryption & auto-lock',
+            '🔔 Status bar notifications for expiring passports & warranties',
+        ] : [
+            'Standalone Android APK with hardware-backed performance',
+            'Full-screen vault experience with zero browser address bar clutter',
+            'Real-time system tray & status bar alerts for due tasks',
+            'High-security 4-digit PIN authentication & auto-lock',
+        ],
+    ]);
+});
+
+/**
+ * Toggle Simulation of New Version Release (For Development, Demo & Testing)
+ */
+Route::post('/app/toggle-simulated-release', function (\Illuminate\Http\Request $request) {
+    $manifestFile = storage_path('app/app_release.json');
+    $enable = $request->boolean('enable', true);
+
+    if (!$enable) {
+        if (file_exists($manifestFile)) {
+            unlink($manifestFile);
+        }
+        return response()->json(['simulated' => false, 'message' => 'Reset to standard v0.2.0']);
+    }
+
+    $apkPath = base_path('../frontend/public/downloads/RemiVault.apk');
+    $sizeBytes = file_exists($apkPath) ? filesize($apkPath) : 18365203;
+    $sizeMb = round($sizeBytes / (1024 * 1024), 1);
+
+    $manifest = [
+        'version' => '0.3.0',
+        'version_code' => 3,
+        'package_name' => 'com.remivault.app',
+        'apk_filename' => 'RemiVault.apk',
+        'apk_size_bytes' => $sizeBytes,
+        'apk_size_formatted' => $sizeMb . ' MB',
+        'min_android' => 'Android 8.0 (API 26)+',
+        'target_android' => 'Android 14 (API 34)',
+        'download_url' => '/api/download/apk',
+        'release_date' => '2026-10-30',
+        'is_mandatory' => false,
+        'changelog' => [
+            '🚀 Live in-app version upgrade alerts with bandwidth awareness',
+            '⚡ Ultra-smooth progressive hydration & instant vault access',
+            '🔒 Hardware-backed biometric PIN encryption & auto-lock',
+            '🔔 Status bar notifications for expiring passports & warranties',
+        ],
+    ];
+
+    file_put_contents($manifestFile, json_encode($manifest, JSON_PRETTY_PRINT));
+    return response()->json(['simulated' => true, 'manifest' => $manifest]);
+});
+
+/**
  * Public Direct APK Download Endpoint
  * Serves the APK with explicit android package headers to prevent browsers from appending .zip
  */

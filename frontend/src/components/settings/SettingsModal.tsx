@@ -23,7 +23,11 @@ import {
   VolumeX,
   Smartphone,
   Calendar,
-  Sparkles
+  Sparkles,
+  Download,
+  QrCode,
+  RefreshCw,
+  ArrowUpCircle
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import type { Theme } from '../../context/ThemeContext';
@@ -40,6 +44,19 @@ import {
   type NotificationPermissionState,
   type NotificationSettings
 } from '../../services/notificationService';
+import {
+  triggerApkDownload,
+  getDeviceType,
+  isNativePlatform,
+  fetchAppVersionInfo,
+  type AppVersionInfo
+} from '../../services/installPromptService';
+import { APP_VERSION } from '../../config/version';
+import { 
+  type AppUpdateInfo, 
+  type UpdateCheckResult, 
+  toggleSimulatedServerRelease 
+} from '../../services/versionUpdateService';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -49,9 +66,14 @@ interface SettingsModalProps {
   remindersCount?: number;
   notesCount?: number;
   onPreviewLaunchScreen?: () => void;
+  onOpenInstallModal?: (tab?: 'android' | 'desktop' | 'qr') => void;
+  onCheckUpdates?: (force?: boolean, simulate?: boolean) => Promise<UpdateCheckResult | null>;
+  availableUpdate?: AppUpdateInfo | null;
+  onOpenUpdateModal?: () => void;
+  onOpenWhatsNew?: () => void;
 }
 
-type AccordionSection = 'profile' | 'theme' | 'security' | 'notifications' | 'feedback' | 'session' | null;
+type AccordionSection = 'profile' | 'theme' | 'security' | 'notifications' | 'app' | 'feedback' | 'session' | null;
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ 
   isOpen, 
@@ -61,6 +83,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   remindersCount = 0,
   notesCount = 0,
   onPreviewLaunchScreen,
+  onOpenInstallModal,
+  onCheckUpdates,
+  availableUpdate,
+  onOpenUpdateModal,
+  onOpenWhatsNew,
 }) => {
   const { userPreference, setTheme } = useTheme();
   const { user, logout, activeProfile, setupPin, lockApp } = useAuth();
@@ -137,6 +164,60 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setTestNotifStatus('Please allow system notifications first.');
     }
     setTimeout(() => setTestNotifStatus(null), 4000);
+  };
+
+  // Standalone App & .APK Download State
+  const [isSettingsApkDownloading, setIsSettingsApkDownloading] = useState(false);
+  const [settingsApkSuccess, setSettingsApkSuccess] = useState(false);
+  const [appInfo, setAppInfo] = useState<AppVersionInfo | null>(null);
+  const currentDevice = getDeviceType();
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchAppVersionInfo().then(setAppInfo);
+    }
+  }, [isOpen]);
+
+  const handleSettingsApkDownload = () => {
+    setIsSettingsApkDownloading(true);
+    triggerApkDownload();
+    setSettingsApkSuccess(true);
+    setTimeout(() => {
+      setIsSettingsApkDownloading(false);
+    }, 1500);
+  };
+
+  // Version Upgrade Management State (Step 14)
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const [updateCheckFeedback, setUpdateCheckFeedback] = useState<string | null>(null);
+  const [isSimulatingRelease, setIsSimulatingRelease] = useState(false);
+
+  const handleManualCheckUpdates = async () => {
+    if (!onCheckUpdates) return;
+    setIsCheckingUpdates(true);
+    setUpdateCheckFeedback(null);
+    try {
+      const res = await onCheckUpdates(true, isSimulatingRelease);
+      if (res && res.updateAvailable) {
+        setUpdateCheckFeedback(`v${res.latestVersion} available!`);
+      } else {
+        setUpdateCheckFeedback(`You're up to date (v${APP_VERSION})`);
+      }
+    } catch {
+      setUpdateCheckFeedback('Could not reach server.');
+    } finally {
+      setIsCheckingUpdates(false);
+    }
+  };
+
+  const handleToggleSimulateRelease = async () => {
+    const nextState = !isSimulatingRelease;
+    setIsSimulatingRelease(nextState);
+    await toggleSimulatedServerRelease(nextState);
+    if (onCheckUpdates) {
+      await onCheckUpdates(true, nextState);
+    }
+    setUpdateCheckFeedback(nextState ? 'Simulated v0.3.0 active!' : 'Reset to standard v0.2.0');
   };
 
   // Reset all modal internal state (collapses all accordions and clears inputs)
@@ -962,6 +1043,222 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <span>{testNotifStatus}</span>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+
+          <div className="settings-hub-divider" />
+
+          {/* SECTION: MOBILE APP & STANDALONE (.APK) */}
+          <div className="settings-hub-item">
+            <div 
+              className={`settings-hub-row ${openSection === 'app' ? 'active' : ''}`}
+              onClick={() => toggleSection('app')}
+            >
+              <div className="settings-hub-row-left">
+                <div className="settings-icon-bubble app-bubble">
+                  <Smartphone size={18} />
+                </div>
+                <div>
+                  <h4 className="settings-item-title">
+                    <span className="settings-title-full">Mobile App (.APK) &amp; Desktop</span>
+                    <span className="settings-title-short">Mobile App</span>
+                  </h4>
+                  <span className="settings-item-sub">Standalone Android app &amp; offline vault access</span>
+                </div>
+              </div>
+              <div className="settings-hub-row-right">
+                <span className="settings-status-pill app-pill">
+                  {isNativePlatform() ? 'Native App' : 'Android .APK'}
+                </span>
+                <ChevronDown size={16} className={`settings-hub-chevron ${openSection === 'app' ? 'expanded' : ''}`} />
+              </div>
+            </div>
+
+            {openSection === 'app' && (
+              <div className="settings-hub-drawer">
+                {/* Platform Status Banner */}
+                <div className="settings-notif-overview-card" style={{ marginBottom: '1rem' }}>
+                  <div className="notif-overview-icon-col">
+                    <Smartphone size={22} className="notif-phone-icon" />
+                  </div>
+                  <div className="notif-overview-text">
+                    <strong>
+                      {isNativePlatform()
+                        ? 'Running inside Standalone Android App'
+                        : currentDevice === 'android'
+                        ? 'Android Mobile Device Detected'
+                        : currentDevice === 'ios'
+                        ? 'Apple iOS Device Detected'
+                        : 'Desktop Workstation Detected'}
+                    </strong>
+                    <p>
+                      {isNativePlatform()
+                        ? 'You are running the official standalone RemiVault Android application with hardware PIN protection.'
+                        : currentDevice === 'android'
+                        ? 'Install our standalone .APK for instant launch without browser address bars, hardware PIN lock, and system notification alerts.'
+                        : 'Download the standalone Android .APK for your phone or install the desktop application for taskbar access.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Direct APK Download Card */}
+                <div className="install-download-box" style={{ marginBottom: '0.85rem' }}>
+                  <div className="install-box-left">
+                    <div className="install-apk-badge">
+                      <span className="apk-label">APK</span>
+                      <span className="apk-size">{appInfo?.apk_size_formatted || '17.5 MB'}</span>
+                    </div>
+                    <div>
+                      <h4 className="download-box-heading">RemiVault Standalone .APK</h4>
+                      <p className="download-box-sub">
+                        {appInfo?.version ? `v${appInfo.version}` : 'v0.2.0'} • Android 8.0+ • Full Offline Vault
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="install-box-right">
+                    <button
+                      type="button"
+                      className="btn btn-primary download-apk-main-btn"
+                      onClick={handleSettingsApkDownload}
+                      disabled={isSettingsApkDownloading}
+                      style={{ padding: '0.55rem 0.95rem', fontSize: '0.8rem' }}
+                    >
+                      <Download size={15} className={isSettingsApkDownloading ? 'spin-anim' : ''} />
+                      <span>{isSettingsApkDownloading ? 'Starting...' : 'Download APK'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {settingsApkSuccess && (
+                  <div className="install-alert-banner success" style={{ marginBottom: '0.85rem' }}>
+                    <CheckCircle2 size={15} />
+                    <span>Download started! Check your notification bar for <code>RemiVault.apk</code>.</span>
+                  </div>
+                )}
+
+                {/* Additional Guidance Buttons */}
+                {onOpenInstallModal && (
+                  <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        handleModalClose();
+                        onOpenInstallModal('android');
+                      }}
+                      style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                    >
+                      <Sparkles size={14} color="#f59e0b" />
+                      <span>Step-by-Step Install Guide</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        handleModalClose();
+                        onOpenInstallModal('qr');
+                      }}
+                      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                      title="Scan QR Code to download on mobile"
+                    >
+                      <QrCode size={14} />
+                      <span>Scan QR Code</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* App Version & Upgrade Management Section (Step 14) */}
+                <div style={{ marginTop: '0.85rem', padding: '0.85rem 1rem', background: 'rgba(15, 23, 42, 0.45)', border: '1px solid var(--border-card)', borderRadius: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                      <ArrowUpCircle size={18} color="#fbbf24" />
+                      <div>
+                        <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)', display: 'block' }}>
+                          App Version &amp; Upgrade Alerts
+                        </strong>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                          Installed: <code>v{APP_VERSION}</code> • Status: {isCheckingUpdates ? 'Checking server...' : updateCheckFeedback || (availableUpdate ? `v${availableUpdate.version} Available!` : 'Latest Version')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleManualCheckUpdates}
+                      disabled={isCheckingUpdates}
+                      style={{ fontSize: '0.74rem', padding: '0.35rem 0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                      title="Check server for new release updates"
+                    >
+                      <RefreshCw size={12} className={isCheckingUpdates ? 'spin-anim' : ''} />
+                      <span>{isCheckingUpdates ? 'Checking...' : 'Check Updates'}</span>
+                    </button>
+                  </div>
+
+                  {availableUpdate && (
+                    <div style={{ marginTop: '0.5rem', padding: '0.7rem 0.85rem', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                          <span>New Update: v{availableUpdate.version}</span>
+                          <span style={{ fontSize: '0.68rem', padding: '0.1rem 0.45rem', borderRadius: 4, background: 'rgba(6, 182, 212, 0.2)', color: '#22d3ee', fontWeight: 600 }}>
+                            {availableUpdate.apk_size_formatted || '17.5 MB'}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                          {availableUpdate.changelog?.[0] || 'New features and improvements ready'}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => {
+                          handleModalClose();
+                          if (onOpenUpdateModal) onOpenUpdateModal();
+                        }}
+                        style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem', whiteSpace: 'nowrap' }}
+                      >
+                        Release Notes
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Dev / Reviewer Simulation Control */}
+                  <div style={{ marginTop: '0.6rem', paddingTop: '0.55rem', borderTop: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                      Developer / Demo Testing:
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', color: '#f59e0b', textDecoration: 'underline' }}
+                      onClick={handleToggleSimulateRelease}
+                    >
+                      {isSimulatingRelease ? 'Reset Server to v0.2.0' : 'Simulate v0.3.0 Release'}
+                    </button>
+                  </div>
+
+                  {/* View What's New Release Notes Replay */}
+                  {onOpenWhatsNew && (
+                    <div style={{ marginTop: '0.65rem' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          handleModalClose();
+                          onOpenWhatsNew();
+                        }}
+                        style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.76rem', padding: '0.45rem' }}
+                      >
+                        <Sparkles size={13} color="#f59e0b" />
+                        <span>View What's New in v{APP_VERSION} (Release Notes)</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

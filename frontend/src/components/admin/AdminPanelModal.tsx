@@ -34,6 +34,7 @@ import {
   type AdminFeedbackItem 
 } from '../../services/api';
 import { UserAvatar } from '../common/UserAvatar';
+import { APP_VERSION, APP_VERSION_CODE } from '../../config/version';
 
 interface AdminPanelModalProps {
   isOpen: boolean;
@@ -660,6 +661,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
               </h3>
 
               <div className="telemetry-grid">
+                <div className="telemetry-row">
+                  <span className="telemetry-label">RemiVault App:</span>
+                  <strong className="telemetry-val" style={{ color: '#fbbf24' }}>v{APP_VERSION} (Build {APP_VERSION_CODE})</strong>
+                </div>
+
                 <div className="telemetry-row">
                   <span className="telemetry-label">Laravel Version:</span>
                   <strong className="telemetry-val">{overview.system.laravel_version}</strong>

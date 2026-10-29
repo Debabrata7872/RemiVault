@@ -1,0 +1,877 @@
+/* ==========================================================================
+   RemiVault Smart In-App Install Prompt & APK Download Modal
+   Luxury Fintech Aesthetics • Glassmorphism • Responsive Layout
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. FLOATING INSTALL BANNER
+   -------------------------------------------------------------------------- */
+.install-banner-wrapper {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1040;
+  width: calc(100% - 2rem);
+  max-width: 720px;
+  animation: bannerSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: auto;
+}
+
+@keyframes bannerSlideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 28px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+.install-banner-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  padding: 1.1rem 1.35rem;
+  background: linear-gradient(135deg, rgba(20, 27, 45, 0.94) 0%, rgba(15, 23, 42, 0.98) 100%);
+  border: 1.5px solid rgba(245, 158, 11, 0.35);
+  border-radius: 20px;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.55), 0 0 25px rgba(245, 158, 11, 0.14);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-sizing: border-box;
+}
+
+[data-theme="light"] .install-banner-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-color: #fcd34d;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12), 0 0 20px rgba(245, 158, 11, 0.08);
+}
+
+.install-banner-close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--border-card);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.install-banner-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+  transform: rotate(90deg);
+}
+
+.install-banner-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.22) 0%, rgba(245, 158, 11, 0.04) 75%);
+  border: 1.5px solid rgba(245, 158, 11, 0.38);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.banner-phone-icon {
+  color: #f59e0b;
+}
+
+.banner-icon-sparkle {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  color: #fbbf24;
+}
+
+.install-banner-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.install-banner-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.banner-badge {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  padding: 0.15rem 0.5rem !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.25)) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  border-radius: 100px !important;
+}
+
+.banner-meta-tag {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.install-banner-title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.install-banner-subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.banner-feedback-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #10b981;
+}
+
+.banner-feedback-pill code {
+  color: #34d399;
+  font-weight: 600;
+}
+
+.install-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.banner-action-btn {
+  padding: 0.5rem 0.85rem !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  white-space: nowrap !important;
+}
+
+.banner-action-btn.main {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: #0f172a !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3) !important;
+}
+
+.banner-action-btn.main:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.45) !important;
+}
+
+.banner-action-btn.secondary {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-card) !important;
+}
+
+.banner-action-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+}
+
+.banner-later-btn {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-secondary) !important;
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+  padding: 0.45rem 0.6rem !important;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: color var(--transition-fast);
+}
+
+.banner-later-btn:hover {
+  color: var(--text-primary) !important;
+}
+
+/* Responsive adjustment for Mobile screens */
+@media (max-width: 680px) {
+  .install-banner-wrapper {
+    bottom: 1rem;
+    width: calc(100% - 1.25rem);
+  }
+
+  .install-banner-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1.15rem 1rem 1rem;
+  }
+
+  .install-banner-subtitle {
+    white-space: normal;
+  }
+
+  .install-banner-actions {
+    width: 100%;
+    justify-content: stretch;
+    gap: 0.5rem;
+  }
+
+  .banner-action-btn.main {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .banner-action-btn.secondary {
+    flex: 0 0 auto;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. DETAILED INSTALLATION MODAL
+   -------------------------------------------------------------------------- */
+.install-modal-backdrop {
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  background: rgba(10, 15, 30, 0.78) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1.25rem 1rem !important;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.install-modal-card {
+  width: 100% !important;
+  max-width: 580px !important;
+  max-height: 90vh !important;
+  position: relative !important;
+  border-radius: 24px !important;
+  padding: 1.85rem 1.75rem 1.5rem !important;
+  background: linear-gradient(145deg, rgba(20, 27, 45, 0.96), rgba(15, 23, 42, 0.98)) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.32) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 35px rgba(245, 158, 11, 0.15) !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="light"] .install-modal-card {
+  background: #ffffff !important;
+  border-color: #fcd34d !important;
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.15), 0 0 25px rgba(245, 158, 11, 0.1) !important;
+}
+
+.install-modal-close {
+  position: absolute;
+  top: 1.15rem;
+  right: 1.15rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border-card);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.install-modal-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+  transform: rotate(90deg);
+}
+
+/* Header */
+.install-hero-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.15rem;
+  margin-bottom: 1.35rem;
+}
+
+.install-icon-emblem {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.24) 0%, rgba(245, 158, 11, 0.05) 75%);
+  border: 1.5px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.install-phone-icon {
+  color: #f59e0b;
+}
+
+.install-sparkle-pill {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  color: #fbbf24;
+}
+
+.install-title-wrap {
+  flex: 1;
+}
+
+.install-pill-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.install-badge {
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  padding: 0.15rem 0.55rem !important;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.2)) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  border-radius: 100px !important;
+}
+
+.install-version-tag {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-card);
+}
+
+.install-main-title {
+  margin: 0 0 0.35rem 0;
+  font-size: 1.32rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.install-subtitle {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* Tabs */
+.install-nav-tabs {
+  display: flex;
+  gap: 0.4rem;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 0.3rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-card);
+  margin-bottom: 1.35rem;
+}
+
+[data-theme="light"] .install-nav-tabs {
+  background: #f1f5f9;
+}
+
+.install-tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.install-tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.install-tab-btn.active {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.15);
+}
+
+[data-theme="light"] .install-tab-btn.active {
+  background: #ffffff;
+  color: #b45309;
+  border-color: #fcd34d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.tab-current-pill {
+  font-size: 0.62rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  font-weight: 700;
+}
+
+/* Download Card */
+.install-download-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.65), rgba(15, 23, 42, 0.85));
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  margin-bottom: 1.15rem;
+}
+
+[data-theme="light"] .install-download-box {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.install-box-left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.install-apk-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.1));
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.install-apk-badge.desktop {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(79, 70, 229, 0.1));
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #818cf8;
+}
+
+.apk-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #fbbf24;
+}
+
+.apk-size {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.download-box-heading {
+  margin: 0 0 0.2rem 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.download-box-sub {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+
+.download-apk-main-btn {
+  padding: 0.65rem 1.15rem !important;
+  font-size: 0.84rem !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.45rem !important;
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: #0f172a !important;
+  border: none !important;
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35) !important;
+}
+
+.download-apk-main-btn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 8px 22px rgba(245, 158, 11, 0.5) !important;
+}
+
+.pwa-ready-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 8px;
+}
+
+.install-alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  margin-bottom: 1.15rem;
+}
+
+.install-alert-banner.success {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #10b981;
+}
+
+/* Benefits Grid */
+.install-benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.35rem;
+}
+
+.install-benefit-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-card);
+}
+
+[data-theme="light"] .install-benefit-card {
+  background: #f8fafc;
+}
+
+.benefit-icon-ring {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.benefit-icon-ring.green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.benefit-icon-ring.amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.benefit-icon-ring.blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.benefit-icon-ring.purple {
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.benefit-text strong {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.benefit-text p {
+  margin: 0;
+  font-size: 0.71rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+/* Steps List */
+.install-steps-section {
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 16px;
+  border: 1px solid var(--border-card);
+  padding: 1.1rem;
+  margin-bottom: 1.25rem;
+}
+
+[data-theme="light"] .install-steps-section {
+  background: #f8fafc;
+}
+
+.install-steps-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.85rem 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.install-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.install-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.step-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.step-info strong {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  margin-bottom: 0.15rem;
+}
+
+.step-info p {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.step-info code {
+  color: #fbbf24;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.35rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+/* QR Code Section */
+.qr-hero-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.35rem;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 20px;
+}
+
+[data-theme="light"] .qr-hero-card {
+  background: #f8fafc;
+  border-color: #fcd34d;
+}
+
+.qr-matrix-container {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  background: #ffffff;
+  padding: 10px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-matrix-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.qr-center-shield {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  padding: 4px;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-instructions {
+  flex: 1;
+  min-width: 0;
+}
+
+.qr-title {
+  margin: 0 0 0.35rem 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.qr-sub {
+  margin: 0 0 0.85rem 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.qr-sub code {
+  color: #fbbf24;
+}
+
+.qr-link-copy-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.qr-link-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+
+[data-theme="light"] .qr-link-input {
+  background: #ffffff;
+}
+
+.qr-copy-btn {
+  padding: 0.45rem 0.85rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  white-space: nowrap !important;
+}
+
+/* Footer */
+.install-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-card);
+}
+
+.install-footer-note {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.install-close-btn {
+  padding: 0.5rem 1.15rem !important;
+  font-size: 0.8rem !important;
+  border-radius: 10px !important;
+}
+
+/* Responsive Modal adjustments */
+@media (max-width: 600px) {
+  .install-modal-card {
+    padding: 1.35rem 1.15rem !important;
+  }
+
+  .install-benefits-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .install-download-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .download-apk-main-btn {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .qr-hero-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .qr-instructions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .qr-link-copy-row {
+    width: 100%;
+  }
+}
+
