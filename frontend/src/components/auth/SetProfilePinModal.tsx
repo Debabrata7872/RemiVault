@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ShieldCheck, ArrowLeft, CheckCircle2, RotateCcw, Delete, X, Loader2 } from 'lucide-react';
 import type { DeviceProfile } from '../../services/deviceProfiles';
+import { 
+  triggerHapticTick, 
+  triggerHapticSuccess, 
+  triggerHapticError 
+} from '../../services/hapticsService';
 
 interface SetProfilePinModalProps {
   isOpen: boolean;
@@ -44,10 +49,12 @@ export const SetProfilePinModal: React.FC<SetProfilePinModalProps> = ({
     setError(null);
     try {
       setIsSuccess(true);
+      triggerHapticSuccess();
       await onSavePin(confirmedPin);
     } catch (err: unknown) {
       const e = err as Error;
       setIsSuccess(false);
+      triggerHapticError();
       setError(e.message || 'Failed to save PIN.');
       setConfirmPin('');
       setStep('create');
@@ -61,6 +68,7 @@ export const SetProfilePinModal: React.FC<SetProfilePinModalProps> = ({
   const handleDigit = useCallback((digit: string) => {
     if (isSubmitting || isSuccess) return;
     setError(null);
+    triggerHapticTick();
 
     if (step === 'create') {
       if (pin.length < 4) {
@@ -83,6 +91,7 @@ export const SetProfilePinModal: React.FC<SetProfilePinModalProps> = ({
           } else {
             // Mismatch
             setIsShaking(true);
+            triggerHapticError();
             setError('PINs do not match. Please try again.');
             setTimeout(() => {
               setIsShaking(false);
@@ -99,6 +108,7 @@ export const SetProfilePinModal: React.FC<SetProfilePinModalProps> = ({
   const handleBackspace = useCallback(() => {
     if (isSubmitting || isSuccess) return;
     setError(null);
+    triggerHapticTick();
     if (step === 'create') {
       setPin((prev) => prev.slice(0, -1));
     } else {
@@ -113,6 +123,7 @@ export const SetProfilePinModal: React.FC<SetProfilePinModalProps> = ({
   const handleClear = useCallback(() => {
     if (isSubmitting || isSuccess) return;
     setError(null);
+    triggerHapticTick();
     if (step === 'confirm') {
       setConfirmPin('');
     } else {

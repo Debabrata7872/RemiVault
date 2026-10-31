@@ -26,7 +26,7 @@
 13. [x] **Smart In-App Install Prompt (.APK Download)**: Periodic, non-intrusive popup/banner detecting compatible mobile devices to offer one-click download/installation of the standalone `.apk` app, with dismissal cooldown. *(Completed)*
 14. [x] **App Version Upgrade Notification & Download Management**: Automatic version update detection showing new release alerts, explicit download size preview (for data/bandwidth awareness), instant update trigger, and periodic snoozed reminders until updated. *(Completed)*
 15. [x] **Post-Update "What's New" Changelog Modal (Auto-Dismiss by Content Height)**: Interactive release notes modal appearing on post-update first launch, with auto-close timing calibrated dynamically to content length/height. *(Completed)*
-16. [ ] **Native Mobile Bottom Navigation Bar (Thumb Reachability)**: Fixed frosted-glass bottom navigation bar on mobile devices (`<= 768px`) with safe-area insets (`env(safe-area-inset-bottom)`).
-17. [ ] **Interactive Landing Page Hero Preview**: Animated, interactive live vault card in the public hero showing live password reveal, auto-lock simulation, and cipher flip.
-18. [ ] **Tactile Haptic Feedback on Mobile**: Physical vibration ticks on 4-digit PIN keypad presses, combination dials, vault unlock, and clipboard copying via `@capacitor/haptics` and Web Vibration API.
+16. [x] **Native Mobile Bottom Navigation Bar (Thumb Reachability)**: Fixed frosted-glass bottom navigation bar on mobile devices (`<= 768px`) with safe-area insets (`env(safe-area-inset-bottom)`). *(Completed)*
+17. [x] **Interactive Landing Page Hero Preview**: Animated, interactive live vault card in the public hero showing live password reveal, auto-lock simulation, cipher flip, PIN keypad, and document countdowns. *(Completed)*
+18. [x] **Tactile Haptic Feedback on Mobile**: Physical vibration ticks on 4-digit PIN keypad presses, combination dials, vault unlock, and clipboard copying via `@capacitor/haptics` and Web Vibration API. *(Completed)*
 

@@ -39,6 +39,10 @@ import type {
 } from '../../services/vault';
 import { VaultSkeleton } from '../common/skeletons';
 import { usePreloadData } from '../../context/PreloadDataContext';
+import { 
+  triggerHapticSuccess, 
+  triggerHapticMedium 
+} from '../../services/hapticsService';
 
 interface CategoryMeta {
   label: string;
@@ -311,6 +315,7 @@ export const VaultSection: React.FC = () => {
   };
 
   const togglePasswordVisibility = (id: number) => {
+    triggerHapticMedium();
     setVisiblePasswordIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -325,6 +330,7 @@ export const VaultSection: React.FC = () => {
   const copyToClipboard = async (text: string, key: string, entryId?: number) => {
     try {
       await navigator.clipboard.writeText(text);
+      triggerHapticSuccess();
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(null), 2000);
 
@@ -732,6 +738,7 @@ export const VaultSection: React.FC = () => {
                     className="vault-copy-btn"
                     onClick={() => {
                       navigator.clipboard.writeText(generatedPassword);
+                      triggerHapticSuccess();
                       setIsGenCopied(true);
                       setTimeout(() => setIsGenCopied(false), 2000);
                     }}
@@ -814,6 +821,7 @@ export const VaultSection: React.FC = () => {
                   className="btn btn-primary vault-create-btn"
                   onClick={() => {
                     navigator.clipboard.writeText(generatedPassword);
+                    triggerHapticSuccess();
                     setIsGeneratorOpen(false);
                   }}
                 >

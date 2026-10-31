@@ -224,7 +224,7 @@
 /* Responsive adjustment for Mobile screens */
 @media (max-width: 680px) {
   .install-banner-wrapper {
-    bottom: 1rem;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
     width: calc(100% - 1.25rem);
   }
 

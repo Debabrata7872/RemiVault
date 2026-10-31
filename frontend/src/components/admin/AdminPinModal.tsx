@@ -9,6 +9,11 @@ import {
   Loader2
 } from 'lucide-react';
 import { verifyAdminPinApi } from '../../services/api';
+import { 
+  triggerHapticTick, 
+  triggerHapticSuccess, 
+  triggerHapticError 
+} from '../../services/hapticsService';
 
 interface AdminPinModalProps {
   isOpen: boolean;
@@ -89,6 +94,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
       return;
     }
 
+    triggerHapticTick();
     const digit = cleaned.slice(-1);
     const next = [...digits];
     next[index] = digit;
@@ -109,6 +115,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace') {
+      triggerHapticTick();
       if (!digits[index] && index > 0) {
         const next = [...digits];
         next[index - 1] = '';
@@ -131,6 +138,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4);
     if (!pasted) return;
 
+    triggerHapticTick();
     const next = ['', '', '', ''];
     for (let i = 0; i < pasted.length; i++) {
       next[i] = pasted[i];
@@ -157,6 +165,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
     try {
       const result = await verifyAdminPinApi(pinToVerify);
       if (result.valid) {
+        triggerHapticSuccess();
         onPinVerified();
       } else {
         triggerShake(result.message || 'Incorrect Master Admin PIN. Access denied.');
@@ -170,6 +179,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
   };
 
   const triggerShake = (errMsg: string) => {
+    triggerHapticError();
     setError(errMsg);
     setIsShaking(true);
     setDigits(['', '', '', '']);
@@ -187,6 +197,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({
   };
 
   const handleNumpadBackspace = () => {
+    triggerHapticTick();
     const lastFilledIndex = [...digits].reverse().findIndex(d => d !== '');
     if (lastFilledIndex !== -1) {
       const actualIndex = 3 - lastFilledIndex;

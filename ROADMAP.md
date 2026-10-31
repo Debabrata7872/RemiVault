@@ -138,15 +138,32 @@
   - Settings Modal integration with a "View What's New" replay button allowing users to review release notes anytime.
   - *Status:* Completed.
 
-- [ ] **16. Native Mobile Bottom Navigation Bar (Thumb Reachability & Safe-Area Insets)**
+- [x] **16. Native Mobile Bottom Navigation Bar (Thumb Reachability & Safe-Area Insets)**
   - Fixed, frosted-glass bottom tab navigation bar for mobile viewports (`<= 768px`) and standalone Android APK.
   - One-handed thumb reachability for instantaneous switching across Dashboard, Password Vault, Important Dates, Reminders, and Personal Notes.
-  - Native safe-area inset support (`env(safe-area-inset-bottom)`) accommodating modern Android gesture navigation bars and edge-to-edge displays.
+  - Native safe-area inset support (`env(safe-area-inset-bottom)`) with `viewport-fit=cover` accommodating modern Android gesture navigation bars and edge-to-edge displays.
+  - Live notification pips and badges for urgent dates, upcoming/overdue alerts, and stored credentials.
+  - Automatic smooth-scrolling to top of workspace on tab switch.
+  - Responsive layout decoupling: desktop uses spacious horizontal top tabs, mobile uses thumb-first bottom navigation bar with adjusted bottom clearance.
+  - *Status:* Completed.
 
-- [ ] **17. Interactive Landing Page Hero Preview (Interactive Live Vault Demo)**
-  - Interactive live vault demo card right in the public hero section.
-  - Interactive password reveal toggle with cryptographic obfuscation animation, auto-lock countdown timer simulation, and real-time encryption flip to demonstrate zero-knowledge security to new visitors before sign-up.
+- [x] **17. Interactive Landing Page Hero Preview (Interactive Live Vault Demo)**
+  - Interactive live vault demonstration sandbox positioned directly below the public landing hero header (`!user`).
+  - Three switchable demonstration modes: Credentials Decrypt & Cipher Scramble, 4-Digit PIN Lock Simulation, and Milestone & Document Countdown Tracker.
+  - Matrix-style cryptographic glyph scramble animation (350ms decoding jitter with characters `#`, `@`, `!`, `&`, `%`, `*`, `?`, `~`, `0-9`, `A-Z`) transitioning into cleartext.
+  - Auto-lock safety countdown timer (8-second countdown with animated progress bar and live auto-relock into ciphertext bullets).
+  - Password re-roller with cryptographic entropy badge (`128-bit Entropic AES-GCM`) and instant clipboard copying with visual confirmation.
+  - Interactive 4-digit PIN virtual keypad (`PIN: 4892`) with auto-unlocking cipher vault, physical combination dials, and reset locks.
+  - Expiring document tracker countdown card (Passport expiry, Driver's License) with live urgency badges.
+  - Integrated luxury audio sound chimes (`playFintechChime`) on reveal, unlock, and dial ticks, with instant "Create Your Free Vault" registration CTA anchor.
+  - *Status:* Completed.
 
-- [ ] **18. Tactile Haptic Feedback on Mobile (PIN Entry & Mechanical Dial Actions)**
-  - Subtle physical haptic tick vibrations (`@capacitor/haptics` on Android native app and Web Vibration API fallback) on 4-digit PIN button presses, lock/unlock triggers, combination dials, and credential copying.
-  - Simulates the tactile sensation of a precision physical mechanical vault dial in the user's hand.
+- [x] **18. Tactile Haptic Feedback on Mobile (PIN Entry & Mechanical Dial Actions)**
+  - Native hardware haptics integration via `@capacitor/haptics` (Capacitor 8) for Android standalone APK, with Web Vibration API fallback (`navigator.vibrate`) for mobile web browsers.
+  - Dedicated `hapticsService` supporting light ticks (`triggerHapticTick`), medium impacts (`triggerHapticMedium`), rhythmic success pulses (`triggerHapticSuccess`), warning error vibrations (`triggerHapticError`), and selection clicks (`triggerHapticSelection`).
+  - Integrated across all 4-digit PIN keypads: Profile Lock Screen (`ProfileLockScreen`), PIN setup onboarding (`SetProfilePinModal`), and Master Admin PIN modal (`AdminPinModal`).
+  - Integrated with mechanical dials, matrix cipher reveal animations, password re-roller, and 4-digit sandbox simulator in `HeroInteractiveVault`.
+  - Integrated into the Native Mobile Bottom Navigation Bar (`MobileBottomNav`) for tactile thumb tab switching.
+  - Integrated into the Password & Credential Vault (`VaultSection`) for instant physical confirmation when copying passwords to the clipboard.
+  - User preference toggle "Tactile Haptic Feedback (Vibration)" in Settings Modal under "System Alerts & Notifications" with live test trigger (`Test Haptic Pulse`) and automatic device capability detection.
+  - *Status:* Completed.

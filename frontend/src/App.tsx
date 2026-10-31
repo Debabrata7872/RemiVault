@@ -44,6 +44,8 @@ import { LuxuryLaunchScreen } from './components/common/LuxuryLaunchScreen';
 import { InstallPromptBanner, InstallAppModal } from './components/install';
 import { AppUpdateBanner, AppUpdateModal } from './components/update';
 import { WhatsNewModal } from './components/whatsNew';
+import { MobileBottomNav, type WorkspaceTab } from './components/navigation';
+import { HeroInteractiveVault } from './components/landing';
 import { APP_VERSION } from './config/version';
 import { shouldShowWhatsNew } from './services/whatsNewService';
 import { 
@@ -54,8 +56,6 @@ import {
   type UpdateCheckResult
 } from './services/versionUpdateService';
 import './App.css';
-
-type WorkspaceTab = 'overview' | 'vault' | 'dates' | 'reminders' | 'notes';
 
 const RemiVaultApp: React.FC = () => {
   const { 
@@ -527,6 +527,9 @@ const RemiVaultApp: React.FC = () => {
             </div>
           </header>
 
+          {/* Interactive Live Vault Demo Preview */}
+          <HeroInteractiveVault onOpenRegister={() => openAuth('register')} />
+
           {/* Interactive Feature Cards */}
           <section className="overview-modules-grid" style={{ marginTop: '3rem' }}>
             <div className="overview-module-card vault-card-theme" onClick={() => openAuth('register')}>
@@ -873,6 +876,21 @@ const RemiVaultApp: React.FC = () => {
             setShowLaunchScreen(false);
             setIsManualLaunchPreview(false);
           }}
+        />
+      )}
+      {/* Native Mobile Bottom Navigation Bar (Step 16) */}
+      {user && !isLocked && !showLaunchScreen && !isManualLaunchPreview && (
+        <MobileBottomNav
+          activeTab={workspaceTab}
+          onTabChange={(tab) => {
+            setWorkspaceTab(tab);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          vaultCount={counts.vault}
+          urgentDatesCount={counts.urgent_dates}
+          upcomingRemindersCount={counts.upcoming_reminders}
+          overdueRemindersCount={counts.overdue_reminders}
+          notesCount={counts.notes}
         />
       )}
     </div>

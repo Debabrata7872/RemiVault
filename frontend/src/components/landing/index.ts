@@ -1,0 +1,2 @@
+export { HeroInteractiveVault } from './HeroInteractiveVault';
+

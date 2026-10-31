@@ -3920,22 +3920,25 @@ input[type="datetime-local"] {
     word-break: break-all;
   }
 
-  /* Crisp 4-Segment Mobile Workspace Navigation */
+  /* Mobile Workspace Navigation: Handled via Native Mobile Bottom Navigation Bar */
   .workspace-tabs-container {
-    margin: 0.75rem 0 1.25rem;
+    margin: 0.5rem 0 1rem;
     flex-direction: column;
     align-items: stretch;
-    gap: 0.6rem;
-    padding-bottom: 0.5rem;
+    border-bottom: none;
+    padding-bottom: 0;
   }
 
   .workspace-nav-tabs {
-    display: grid !important;
-    grid-template-columns: repeat(5, 1fr) !important;
-    gap: 0.2rem !important;
-    padding: 0.25rem !important;
-    width: 100% !important;
-    overflow: visible !important;
+    display: none !important;
+  }
+
+  .user-workspace-main {
+    padding-bottom: 1.5rem;
+  }
+
+  .app-footer {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .workspace-tab-item {

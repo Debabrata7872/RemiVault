@@ -27,7 +27,8 @@ import {
   Download,
   QrCode,
   RefreshCw,
-  ArrowUpCircle
+  ArrowUpCircle,
+  Vibrate
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import type { Theme } from '../../context/ThemeContext';
@@ -57,6 +58,12 @@ import {
   type UpdateCheckResult, 
   toggleSimulatedServerRelease 
 } from '../../services/versionUpdateService';
+import {
+  isHapticsEnabled,
+  setHapticsEnabled,
+  testHapticFeedback,
+  isHapticsSupported
+} from '../../services/hapticsService';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -166,6 +173,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setTimeout(() => setTestNotifStatus(null), 4000);
   };
 
+  // Tactile Haptic Feedback State
+  const [hapticsEnabledState, setHapticsEnabledState] = useState<boolean>(isHapticsEnabled());
+  const [hapticsTestMessage, setHapticsTestMessage] = useState<string | null>(null);
+
+  const handleToggleHaptics = () => {
+    const next = !hapticsEnabledState;
+    setHapticsEnabledState(next);
+    setHapticsEnabled(next);
+    if (next) {
+      testHapticFeedback();
+    }
+  };
+
+  const handleTestHaptics = async () => {
+    await testHapticFeedback();
+    setHapticsTestMessage('Haptic tick dispatched! Feel the tactile vibration pulse.');
+    setTimeout(() => setHapticsTestMessage(null), 3000);
+  };
+
   // Standalone App & .APK Download State
   const [isSettingsApkDownloading, setIsSettingsApkDownloading] = useState(false);
   const [settingsApkSuccess, setSettingsApkSuccess] = useState(false);
@@ -246,6 +272,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setNotifPermission(getNotificationPermission());
     setNotifSettings(getNotificationSettings());
     setTestNotifStatus(null);
+    setHapticsEnabledState(isHapticsEnabled());
+    setHapticsTestMessage(null);
   };
 
   const handleModalClose = () => {
@@ -1014,6 +1042,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <span className="toggle-knob" />
                     </button>
                   </div>
+
+                  <div className="settings-notif-toggle-row">
+                    <div className="toggle-info">
+                      <div className="toggle-title-row">
+                        <Vibrate size={16} color="#ec4899" />
+                        <strong>Tactile Haptic Feedback (Vibration)</strong>
+                        {isHapticsSupported() && (
+                          <span style={{ fontSize: '0.72rem', color: '#10b981', marginLeft: '0.35rem', fontWeight: 500 }}>
+                            • Active
+                          </span>
+                        )}
+                      </div>
+                      <span>Subtle physical vibration ticks on PIN entry, keypad clicks, vault lock/unlock &amp; credential copying.</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={`notif-toggle-switch ${hapticsEnabledState ? 'on' : 'off'}`}
+                      onClick={handleToggleHaptics}
+                      title="Toggle haptic vibration"
+                    >
+                      <span className="toggle-knob" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Test Action Controls */}
@@ -1035,12 +1086,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <Volume2 size={14} />
                     <span>Test Chime Sound</span>
                   </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleTestHaptics}
+                  >
+                    <Vibrate size={14} />
+                    <span>Test Haptic Pulse</span>
+                  </button>
                 </div>
 
                 {testNotifStatus && (
                   <div className="settings-alert info" style={{ marginTop: '0.65rem' }}>
                     <CheckCircle2 size={15} />
                     <span>{testNotifStatus}</span>
+                  </div>
+                )}
+
+                {hapticsTestMessage && (
+                  <div className="settings-alert success" style={{ marginTop: '0.65rem' }}>
+                    <CheckCircle2 size={15} />
+                    <span>{hapticsTestMessage}</span>
                   </div>
                 )}
               </div>

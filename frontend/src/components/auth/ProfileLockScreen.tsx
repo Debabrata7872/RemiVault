@@ -20,6 +20,11 @@ import type { DeviceProfile } from '../../services/deviceProfiles';
 import { sendEmailOtpApi } from '../../services/api';
 import { UserAvatar } from '../common/UserAvatar';
 import { BrandLogo } from '../common/BrandLogo';
+import { 
+  triggerHapticTick, 
+  triggerHapticSuccess, 
+  triggerHapticError 
+} from '../../services/hapticsService';
 
 interface ProfileLockScreenProps {
   profiles: DeviceProfile[];
@@ -103,6 +108,7 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
       const isValid = await onUnlockWithPin(targetProfile.id, currentPin, () => {
         window.clearTimeout(slowTimer);
         setIsSuccess(true);
+        triggerHapticSuccess();
         setVerifyMessage('Access Granted • Opening Dashboard...');
       });
 
@@ -110,6 +116,7 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
         window.clearTimeout(slowTimer);
         setIsSuccess(false);
         setIsShaking(true);
+        triggerHapticError();
         setPinError('Incorrect PIN. Try again, or use Forgot PIN / Password below.');
         setTimeout(() => {
           setIsShaking(false);
@@ -121,6 +128,7 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
       const e = err as Error;
       setIsSuccess(false);
       setIsShaking(true);
+      triggerHapticError();
       setPinError(e.message || 'Error verifying PIN');
       setTimeout(() => {
         setIsShaking(false);
@@ -147,6 +155,7 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
 
       if (/^[0-9]$/.test(e.key)) {
         if (pin.length < 4) {
+          triggerHapticTick();
           const next = pin + e.key;
           setPin(next);
           setPinError(null);
@@ -155,6 +164,7 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
           }
         }
       } else if (e.key === 'Backspace') {
+        triggerHapticTick();
         setPin((prev) => prev.slice(0, -1));
         setPinError(null);
       } else if (e.key === 'Enter' && pin.length === 4) {
@@ -169,6 +179,7 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
   // Keypad click handlers
   const handleKeypadPress = (val: string) => {
     if (pin.length >= 4) return;
+    triggerHapticTick();
     const next = pin + val;
     setPin(next);
     setPinError(null);
@@ -178,11 +189,13 @@ export const ProfileLockScreen: React.FC<ProfileLockScreenProps> = ({
   };
 
   const handleKeypadBackspace = () => {
+    triggerHapticTick();
     setPin((prev) => prev.slice(0, -1));
     setPinError(null);
   };
 
   const handleKeypadClear = () => {
+    triggerHapticTick();
     setPin('');
     setPinError(null);
   };
