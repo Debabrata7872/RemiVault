@@ -28,8 +28,11 @@ import {
   QrCode,
   RefreshCw,
   ArrowUpCircle,
-  Vibrate
+  Vibrate,
+  ShieldCheck,
+  FileText
 } from 'lucide-react';
+import type { LegalTab } from '../legal';
 import { useTheme } from '../../context/ThemeContext';
 import type { Theme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -78,9 +81,10 @@ interface SettingsModalProps {
   availableUpdate?: AppUpdateInfo | null;
   onOpenUpdateModal?: () => void;
   onOpenWhatsNew?: () => void;
+  onOpenLegal?: (tab?: LegalTab) => void;
 }
 
-type AccordionSection = 'profile' | 'theme' | 'security' | 'notifications' | 'app' | 'feedback' | 'session' | null;
+type AccordionSection = 'profile' | 'theme' | 'security' | 'notifications' | 'app' | 'feedback' | 'session' | 'legal' | null;
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ 
   isOpen, 
@@ -95,6 +99,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   availableUpdate,
   onOpenUpdateModal,
   onOpenWhatsNew,
+  onOpenLegal,
 }) => {
   const { userPreference, setTheme } = useTheme();
   const { user, logout, activeProfile, setupPin, lockApp } = useAuth();
@@ -1432,6 +1437,92 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           <div className="settings-hub-divider" />
 
+          {/* SECTION: LEGAL, PRIVACY & ZERO-KNOWLEDGE (Step 23) */}
+          <div className="settings-hub-item">
+            <div 
+              className={`settings-hub-row ${openSection === 'legal' ? 'active' : ''}`}
+              onClick={() => toggleSection('legal')}
+            >
+              <div className="settings-hub-row-left">
+                <div className="settings-icon-bubble" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>
+                  <ShieldCheck size={18} />
+                </div>
+                <div>
+                  <h4 className="settings-item-title">
+                    <span className="settings-title-full">Legal, Privacy &amp; Security</span>
+                    <span className="settings-title-short">Legal &amp; Privacy</span>
+                  </h4>
+                  <span className="settings-item-sub">Zero-Knowledge guarantee, privacy terms &amp; compliance</span>
+                </div>
+              </div>
+              <div className="settings-hub-row-right">
+                <span className="settings-status-pill" style={{ borderColor: 'rgba(16, 185, 129, 0.3)', color: '#10b981' }}>Verified</span>
+                <ChevronDown size={16} className={`settings-hub-chevron ${openSection === 'legal' ? 'expanded' : ''}`} />
+              </div>
+            </div>
+
+            {openSection === 'legal' && (
+              <div className="settings-hub-drawer">
+                <p style={{ margin: '0 0 0.85rem', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  RemiVault is built around privacy-first zero-knowledge principles. Your encrypted vault items are never stored in plain text or sold.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <button
+                    type="button"
+                    className="settings-session-action-btn"
+                    onClick={() => {
+                      if (onOpenLegal) onOpenLegal('zero-knowledge');
+                    }}
+                    style={{ background: 'rgba(16, 185, 129, 0.08)', borderColor: 'rgba(16, 185, 129, 0.25)' }}
+                  >
+                    <div className="action-btn-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.18)', color: '#10b981' }}>
+                      <Lock size={16} />
+                    </div>
+                    <div style={{ textAlign: 'left', flex: 1 }}>
+                      <span className="action-btn-title" style={{ color: '#10b981' }}>Zero-Knowledge Disclosure</span>
+                      <span className="action-btn-sub">View cryptographic architecture, AES-256 rest encryption &amp; memory isolation</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="settings-session-action-btn"
+                    onClick={() => {
+                      if (onOpenLegal) onOpenLegal('privacy');
+                    }}
+                  >
+                    <div className="action-btn-icon-wrap" style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8' }}>
+                      <EyeOff size={16} />
+                    </div>
+                    <div style={{ textAlign: 'left', flex: 1 }}>
+                      <span className="action-btn-title">Privacy Policy</span>
+                      <span className="action-btn-sub">Zero telemetry selling, no tracking &amp; third-party service audit</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="settings-session-action-btn"
+                    onClick={() => {
+                      if (onOpenLegal) onOpenLegal('terms');
+                    }}
+                  >
+                    <div className="action-btn-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>
+                      <FileText size={16} />
+                    </div>
+                    <div style={{ textAlign: 'left', flex: 1 }}>
+                      <span className="action-btn-title">Terms of Service</span>
+                      <span className="action-btn-sub">User device hygiene responsibilities, recovery PIN policies &amp; liability limits</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="settings-hub-divider" />
+
           {/* SECTION: ACCOUNT & SESSION */}
           <div className="settings-hub-item">
             <div 
@@ -1503,6 +1594,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className="settings-minimal-footer">
           <Shield size={13} />
           <span>RemiVault • Secure &amp; Private</span>
+          {onOpenLegal && (
+            <>
+              <span style={{ opacity: 0.3 }}>•</span>
+              <button
+                type="button"
+                onClick={() => onOpenLegal('zero-knowledge')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#818cf8',
+                  cursor: 'pointer',
+                  fontSize: 'inherit',
+                  textDecoration: 'underline',
+                  padding: 0
+                }}
+              >
+                Legal &amp; Privacy
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

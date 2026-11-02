@@ -140,6 +140,9 @@ Route::get('/app/version', function () {
 
     $apkPath = base_path('../frontend/public/downloads/RemiVault.apk');
     if (!file_exists($apkPath)) {
+        $apkPath = base_path('../frontend/android/app/build/outputs/apk/release/app-release.apk');
+    }
+    if (!file_exists($apkPath)) {
         $apkPath = base_path('../frontend/android/app/build/outputs/apk/debug/app-debug.apk');
     }
     $sizeBytes = file_exists($apkPath) ? filesize($apkPath) : 18365203;
@@ -224,6 +227,9 @@ Route::post('/app/toggle-simulated-release', function (\Illuminate\Http\Request 
  */
 Route::get('/download/apk', function () {
     $apkPath = base_path('../frontend/public/downloads/RemiVault.apk');
+    if (!file_exists($apkPath)) {
+        $apkPath = base_path('../frontend/android/app/build/outputs/apk/release/app-release.apk');
+    }
     if (!file_exists($apkPath)) {
         $apkPath = base_path('../frontend/android/app/build/outputs/apk/debug/app-debug.apk');
     }

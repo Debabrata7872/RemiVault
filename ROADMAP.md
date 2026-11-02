@@ -167,3 +167,57 @@
   - Integrated into the Password & Credential Vault (`VaultSection`) for instant physical confirmation when copying passwords to the clipboard.
   - User preference toggle "Tactile Haptic Feedback (Vibration)" in Settings Modal under "System Alerts & Notifications" with live test trigger (`Test Haptic Pulse`) and automatic device capability detection.
   - *Status:* Completed.
+
+---
+
+## 🚀 Pre-Launch Execution & Production Readiness Checklist
+
+The 18 core application milestones are fully built and verified. The following checklist covers the final operational, security, and release steps required before public user launch:
+
+- [x] **19. Production Environment Audit & Security Hardening**
+  - Integrated `TrustProxies` upstream header resolution in `backend/bootstrap/app.php` ensuring accurate client IP tracking for rate-limiting behind Cloudflare, Nginx, or AWS ALB.
+  - Enforced strict API JSON error encapsulation on unhandled 500 exceptions, eliminating internal file paths and stack trace exposure.
+  - Enhanced `backend/config/cors.php` to accept strict comma-delimited `CORS_ALLOWED_ORIGINS` for production domain lockdown while preserving development ports.
+  - Enabled configurable Sanctum token expiration (`SANCTUM_TOKEN_EXPIRATION`) in `backend/config/sanctum.php` (e.g. 43,200 mins / 30-day auto-expiry).
+  - Authored official production environment master blueprint: `backend/.env.production.example` documenting all security flags (`APP_DEBUG=false`, `APP_ENV=production`, `SESSION_SECURE_COOKIE=true`, `SESSION_ENCRYPT=true`, Brevo TLS relay).
+  - Developed automated CLI security audit tool: `php artisan vault:security-audit` evaluating 12 critical cryptographic, environment, session, and database readiness checkpoints.
+  - *Status:* Completed & Verified.
+
+- [x] **20. Android Signed Release APK / AAB & Production Keystore**
+  - Generated production Java signing keystore (`remivault-release.keystore`) with 2,048-bit RSA key pair valid for 10,000 days (~27 years).
+  - Protected signing credentials via `.gitignore` rules across root and android subdirectories, preventing certificates and passwords from leaking to public Git.
+  - Implemented decoupled signing config (`signingConfigs.release`) in `frontend/android/app/build.gradle` loading from local `keystore.properties` or environment variables, with `keystore.properties.example` template provided.
+  - Built official production-signed release APK (`app-release.apk`, 21.8 MB) verified with Android SDK `apksigner` using APK Signature Scheme v2.
+  - Built official production-signed Android App Bundle (`app-release.aab`, 21.6 MB) optimized for Google Play Console publishing.
+  - Synchronized the signed release APK into the public web downloads repository (`frontend/public/downloads/RemiVault.apk`) and updated backend download resolvers.
+  - *Status:* Completed & Verified.
+
+- [x] **21. SSL/TLS Certificate, Custom Domain & Email Deliverability (Brevo)**
+  - Configured in-app 100% HTTPS enforcement via `URL::forceScheme('https')` in `AppServiceProvider` active whenever `APP_ENV=production` or `APP_FORCE_HTTPS=true`.
+  - Implemented `SecurityHeadersMiddleware` injecting HSTS (`max-age=31536000; includeSubDomains; preload`), `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, and `Permissions-Policy`.
+  - Configured reverse-proxy client IP trust headers (`trustProxies(at: '*')`) in `bootstrap/app.php` ensuring accurate rate limiting and HTTPS scheme recognition behind Cloudflare / Nginx.
+  - Developed automated email & DNS diagnostic engine: `php artisan vault:verify-email` testing live DNS TXT records for SPF, DKIM, and DMARC with optional live test OTP email dispatch (`--send-to=`).
+  - Authored official production web server and DNS setup guide: `docs/DOMAIN_SSL_EMAIL_SETUP.md` with ready-to-use Nginx SSL configs, Cloudflare proxy guidelines, and Brevo DNS records.
+  - *Status:* Completed & Verified.
+
+- [x] **22. Server Background Scheduler & Automated Database Backups**
+  - Registered 4 automated background maintenance jobs in `backend/routes/console.php`:
+    - `vault:process-alerts` (every 15 minutes) scanning due tasks, reminder deadlines, and expiring milestones.
+    - `vault:backup-db --keep=14` (daily at 02:00 AM) executing automated MySQL snapshots.
+    - `sanctum:prune-expired --hours=48` (daily at 03:00 AM) purging expired personal access tokens.
+    - `vault:prune-logs --days=14` (weekly on Sundays at 04:00 AM) pruning storage log files.
+  - Implemented dual-engine database backup system (`VaultBackupDbCommand`): native `mysqldump` CLI with automatic fallback to PHP PDO table streaming engine, gzip compression, and retention pruning.
+  - Developed log maintenance engine (`VaultPruneLogsCommand`) for automated log rotation and storage disk protection.
+  - Authored comprehensive crontab setup and disaster recovery restoration guide: `docs/SERVER_CRON_AND_BACKUP_SETUP.md`.
+  - *Status:* Completed & Verified.
+
+- [x] **23. Privacy Policy, Terms of Service & Legal Compliance Modals**
+  - Created luxury obsidian-glassmorphism `LegalComplianceModal` (`frontend/src/components/legal/LegalComplianceModal.tsx` and `.css`) with 3 tabs:
+    - **Zero-Knowledge Disclosure:** Explaining AES-256-CBC at rest, zero-localStorage guarantee (in-memory volatile hydration with immediate RAM purge), and sole user custodian responsibility.
+    - **Privacy Policy:** Transparent disclosure of minimal collected data (account identity, encrypted vault payloads, anonymized heartbeat metrics), zero-monetization/no-tracking commitment, and third-party audit (Brevo, Firebase).
+    - **Terms of Service:** Acceptance of terms, user device security/PIN hygiene obligations, and liability limitation disclaimers.
+  - Linked across the application:
+    - Dedicated footer links in `frontend/src/App.tsx` (`Zero-Knowledge`, `Privacy Policy`, `Terms of Service`).
+    - Interactive "Zero-Knowledge Disclosure →" badge in the landing overview security section.
+    - Integrated "Legal, Privacy & Security" accordion drawer in `frontend/src/components/settings/SettingsModal.tsx` for logged-in users.
+  - *Status:* Completed & Verified.

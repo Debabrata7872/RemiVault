@@ -29,4 +29,9 @@
 16. [x] **Native Mobile Bottom Navigation Bar (Thumb Reachability)**: Fixed frosted-glass bottom navigation bar on mobile devices (`<= 768px`) with safe-area insets (`env(safe-area-inset-bottom)`). *(Completed)*
 17. [x] **Interactive Landing Page Hero Preview**: Animated, interactive live vault card in the public hero showing live password reveal, auto-lock simulation, cipher flip, PIN keypad, and document countdowns. *(Completed)*
 18. [x] **Tactile Haptic Feedback on Mobile**: Physical vibration ticks on 4-digit PIN keypad presses, combination dials, vault unlock, and clipboard copying via `@capacitor/haptics` and Web Vibration API. *(Completed)*
+19. [x] **Production Environment Audit & Security Hardening**: Set `APP_DEBUG=false`, `APP_ENV=production`, secure `APP_KEY` backup, production CORS origin lockdown, TrustProxies, and automated `vault:security-audit` CLI tool. *(Completed)*
+20. [x] **Android Signed Release APK / AAB & Production Keystore**: Keystore generation, `signingConfigs.release`, signed `app-release.apk` (21.8 MB), signed `app-release.aab` (21.6 MB), and `apksigner` v2 verification. *(Completed)*
+21. [x] **SSL/TLS Certificate, Custom Domain & Email Deliverability (Brevo)**: HTTPS enforcement, SecurityHeadersMiddleware (HSTS), automated `vault:verify-email` CLI tool, and domain setup documentation. *(Completed)*
+22. [x] **Server Background Scheduler & Automated Database Backups**: System crontab for reminders/expiration alerts, dual-engine `vault:backup-db` snapshot system, and log rotation. *(Completed)*
+23. [x] **Privacy Policy, Terms of Service & Legal Compliance Modals**: Zero-knowledge encryption disclosure (AES-256 at rest, zero-localStorage guarantee), transparent privacy terms (no tracking/selling, Brevo audit), Terms of Service, linked in application footer, public landing security section, and Settings modal. *(Completed)*
 

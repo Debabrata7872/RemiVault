@@ -52,6 +52,11 @@ frontend/.env.*.local
 
 # Android Build Artifacts & APKs
 *.apk
+*.aab
+*.keystore
+*.jks
+keystore.properties
+!keystore.properties.example
 frontend/android/.gradle/
 frontend/android/build/
 frontend/android/app/build/

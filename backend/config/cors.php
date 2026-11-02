@@ -19,13 +19,16 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_filter([
-        env('FRONTEND_URL', 'http://localhost:5173'),
-        'http://127.0.0.1:5173',
-        'http://localhost',
-        'https://localhost',
-        'capacitor://localhost',
-    ]),
+    'allowed_origins' => array_values(array_unique(array_filter(array_merge(
+        [
+            env('FRONTEND_URL', 'http://localhost:5173'),
+            'http://127.0.0.1:5173',
+            'http://localhost',
+            'https://localhost',
+            'capacitor://localhost',
+        ],
+        env('CORS_ALLOWED_ORIGINS') ? array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS'))) : []
+    )))),
 
     'allowed_origins_patterns' => [
         '#^https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?$#',

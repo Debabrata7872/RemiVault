@@ -44,6 +44,7 @@ import { LuxuryLaunchScreen } from './components/common/LuxuryLaunchScreen';
 import { InstallPromptBanner, InstallAppModal } from './components/install';
 import { AppUpdateBanner, AppUpdateModal } from './components/update';
 import { WhatsNewModal } from './components/whatsNew';
+import { LegalComplianceModal, type LegalTab } from './components/legal';
 import { MobileBottomNav, type WorkspaceTab } from './components/navigation';
 import { HeroInteractiveVault } from './components/landing';
 import { APP_VERSION } from './config/version';
@@ -174,6 +175,9 @@ const RemiVaultApp: React.FC = () => {
 
   // Post-Update "What's New" Changelog Modal State (Step 15)
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState<boolean>(false);
+
+  // Legal, Privacy & Zero-Knowledge Compliance Modal State (Step 23)
+  const [legalModalTab, setLegalModalTab] = useState<LegalTab | null>(null);
 
   // Check for app version updates against backend manifest
   const runUpdateCheck = useCallback(async (force = false, simulate = false): Promise<UpdateCheckResult | null> => {
@@ -619,6 +623,24 @@ const RemiVaultApp: React.FC = () => {
                 <span className="security-pill">Private Account</span>
                 <span className="security-pill">Secure Login</span>
                 <span className="security-pill">4-Digit PIN Access</span>
+                <button
+                  type="button"
+                  className="security-pill"
+                  onClick={() => setLegalModalTab('zero-knowledge')}
+                  style={{
+                    background: 'rgba(99, 102, 241, 0.12)',
+                    borderColor: 'rgba(99, 102, 241, 0.3)',
+                    color: '#818cf8',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem'
+                  }}
+                  title="Learn more about our Zero-Knowledge security architecture"
+                >
+                  <ShieldCheck size={12} />
+                  <span>Zero-Knowledge Disclosure &rarr;</span>
+                </button>
               </div>
             </div>
           </section>
@@ -630,9 +652,35 @@ const RemiVaultApp: React.FC = () => {
         <div>
           <span>&copy; {new Date().getFullYear()} RemiVault. All personal user data is strictly encrypted and isolated.</span>
         </div>
-        {isAdmin && (
-          <div className="footer-links">
+        <div className="footer-links">
+          <button 
+            type="button"
+            className="footer-btn-link"
+            onClick={() => setLegalModalTab('zero-knowledge')}
+            title="Zero-Knowledge Architecture & Encryption Disclosures"
+          >
+            <ShieldCheck size={14} />
+            <span>Zero-Knowledge</span>
+          </button>
+          <button 
+            type="button"
+            className="footer-btn-link"
+            onClick={() => setLegalModalTab('privacy')}
+            title="RemiVault Privacy Policy"
+          >
+            <span>Privacy Policy</span>
+          </button>
+          <button 
+            type="button"
+            className="footer-btn-link"
+            onClick={() => setLegalModalTab('terms')}
+            title="Terms of Service & Responsibility Disclaimers"
+          >
+            <span>Terms of Service</span>
+          </button>
+          {isAdmin && (
             <button 
+              type="button"
               className="footer-btn-link"
               onClick={handleOpenAdmin}
               title="Open Super Admin Console (Master PIN Protected)"
@@ -640,8 +688,8 @@ const RemiVaultApp: React.FC = () => {
               <ShieldCheck size={14} />
               <span>Admin Console (Master PIN)</span>
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </footer>
 
       {/* Authentication Modal */}
@@ -671,6 +719,7 @@ const RemiVaultApp: React.FC = () => {
         availableUpdate={availableUpdate}
         onOpenUpdateModal={() => setIsUpdateModalOpen(true)}
         onOpenWhatsNew={() => setIsWhatsNewOpen(true)}
+        onOpenLegal={(tab) => setLegalModalTab(tab || 'zero-knowledge')}
       />
 
       {/* Set Profile PIN Modal (Prompted after login if PIN not yet set) */}
@@ -864,6 +913,13 @@ const RemiVaultApp: React.FC = () => {
       <WhatsNewModal
         isOpen={isWhatsNewOpen}
         onClose={() => setIsWhatsNewOpen(false)}
+      />
+
+      {/* Legal, Privacy & Zero-Knowledge Compliance Modal (Step 23) */}
+      <LegalComplianceModal
+        isOpen={legalModalTab !== null}
+        onClose={() => setLegalModalTab(null)}
+        initialTab={legalModalTab ?? 'zero-knowledge'}
       />
 
       {/* Clean & Elegant Loading Splash Screen */}
